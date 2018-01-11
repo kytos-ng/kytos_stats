@@ -4,7 +4,7 @@
   "name": "kytos_flow_manager",
   "description": "# TODO: <<<< Insert here your NApp description >>>>",
   "version": "",
-  "napp_dependencies": [],
+  "napp_dependencies": ["kytos/of_core"],
   "license": "",
   "tags": [],
   "url": ""
