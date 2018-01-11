@@ -373,21 +373,6 @@ class Main(KytosNApp):
             switch.generic_flows = []
         self.register_rest()
 
-    def register_rest(self):
-        """Register REST calls
-        POST /flow/match/<dpid> tries to match a packet with a switch (identified by dpid) flows
-        GET /flows/packet_count/<dpid>?start_date=0&end_date=0
-        GET /flows/byte_count/<dpid>?start_date=0&end_date=0
-        Returns packet or byte counters from start to end date, for each flow in a switch (identified by dpid)
-        """
-        endpoints = [
-            ('/flow/match/<dpid>', self.flow_match, ['GET']),
-            ('/flow/stats/<dpid>', self.flow_stats, ['GET']),
-        ]
-
-        for endpoint in endpoints:
-            self.controller.register_rest_endpoint(*endpoint)
-
     def execute(self):
         """This method is executed right after the setup method execution.
 
@@ -412,10 +397,12 @@ class Main(KytosNApp):
                     return flow
         return None
 
+    @rest('flow/match/<dpid>')
     def flow_match(self, dpid):
         switch = self.controller.get_switch_by_dpid(dpid)
         return jsonify(switch.match_flows(request.args, False))
 
+    @rest('flow/stats/<dpid>')
     def flow_stats(self, dpid):
         switch = self.controller.get_switch_by_dpid(dpid)
         return jsonify(switch.match_flows(request.args, True))
