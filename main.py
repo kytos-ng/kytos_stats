@@ -371,7 +371,6 @@ class Main(KytosNApp):
         Switch.match_and_apply = self.match_and_apply
         for dpid, switch in self.controller.switches.items():
             switch.generic_flows = []
-        self.register_rest()
 
     def execute(self):
         """This method is executed right after the setup method execution.
