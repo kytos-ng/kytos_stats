@@ -462,17 +462,31 @@ class Main(KytosNApp):
 
         return jsonify(count_flows)
 
-    @staticmethod
     @listen_to('kytos/of_core.v0x01.messages.in.ofpt_stats_reply')
-    def handle_features_reply(event):
+    def handle_stats_reply_0x01(self, event):
+        """Capture flow stats messages for OpenFlow 1.0."""
         msg = event.content['message']
-        if msg.body_type == common01.StatsTypes.OFPST_FLOW:
+        if msg.body_type == common01.StatsType.OFPST_FLOW:
             switch = event.source.switch
-            switch.generic_flows = []
-            for flow_stats in msg.body:
-                flow = GenericFlow.from_flow_stats(flow_stats)
-                switch.generic_flows.append(flow)
-            switch.generic_flows.sort(
-                key=lambda f: (f.priority, f.duration_sec),
-                reverse=True
-            )
+            self.handle_stats_reply(msg, switch)
+
+    @listen_to('kytos/of_core.v0x04.messages.in.ofpt_multipart_reply')
+    def handle_stats_reply_0x04(self, event):
+        """Capture flow stats messages for OpenFlow 1.3."""
+        msg = event.content['message']
+        if msg.multipart_type == common04.MultipartType.OFPMP_FLOW:
+            switch = event.source.switch
+            self.handle_stats_reply(msg, switch)
+            switch.msg = msg
+
+    @staticmethod
+    def handle_stats_reply(msg, switch):
+        """Insert flows received in the switch list of flows."""
+        switch.metadata['generic_flows'] = []
+        for flow_stats in msg.body:
+            flow = GenericFlow.from_flow_stats(flow_stats, switch.ofp_version)
+            switch.metadata['generic_flows'].append(flow)
+        switch.metadata['generic_flows'].sort(
+            key=lambda f: (f.priority, f.duration_sec),
+            reverse=True
+        )
