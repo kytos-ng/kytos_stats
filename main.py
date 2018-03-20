@@ -45,6 +45,7 @@ class GenericFlow(object):
 
     @property
     def id(self):
+        # pylint: disable=invalid-name
         """Return the hash of the object.
         Calculates the hash of the object by using the hashlib we use md5 of
         strings.
@@ -381,32 +382,33 @@ class Main(KytosNApp):
 
     @rest('packet_count/<flow_id>')
     def packet_count(self, flow_id):
+        """Packet count of an specific flow."""
         flow = self.flow_from_id(flow_id)
         if flow is None:
             return "Flow does not exist", 404
-        else:
-            packet_stats = {'flow_id': flow_id,
-                            'packet_counter': flow.packet_count,
-                            'packet_per_second':
-                                flow.packet_count / flow.duration_sec
-                           }
-            return jsonify(packet_stats)
+        packet_stats = {
+            'flow_id': flow_id,
+            'packet_counter': flow.packet_count,
+            'packet_per_second': flow.packet_count / flow.duration_sec
+            }
+        return jsonify(packet_stats)
 
     @rest('bytes_count/<flow_id>')
     def bytes_count(self, flow_id):
+        """Bytes count of an specific flow."""
         flow = self.flow_from_id(flow_id)
         if flow is None:
             return "Flow does not exist", 404
-        else:
-            bytes_stats = {'flow_id': flow_id,
-                           'bytes_counter': flow.byte_count,
-                           'bits_per_second':
-                               flow.byte_count * 8 / flow.duration_sec
-                          }
-            return jsonify(bytes_stats)
+        bytes_stats = {
+            'flow_id': flow_id,
+            'bytes_counter': flow.byte_count,
+            'bits_per_second': flow.byte_count * 8 / flow.duration_sec
+            }
+        return jsonify(bytes_stats)
 
     @rest('packet_count/per_flow/<dpid>')
     def packet_count_per_flow(self, dpid):
+        """Per flow packet count."""
         return self.flows_counters('packet_count',
                                    dpid,
                                    counter='packet_counter',
@@ -414,12 +416,14 @@ class Main(KytosNApp):
 
     @rest('packet_count/sum/<dpid>')
     def packet_count_sum(self, dpid):
+        """Sum of packet count flow stats."""
         return self.flows_counters('packet_count',
                                    dpid,
-                                   sum=True)
+                                   total=True)
 
     @rest('bytes_count/per_flow/<dpid>')
     def bytes_count_per_flow(self, dpid):
+        """Per flow bytes count."""
         return self.flows_counters('byte_count',
                                    dpid,
                                    counter='bytes_counter',
@@ -427,13 +431,22 @@ class Main(KytosNApp):
 
     @rest('bytes_count/sum/<dpid>')
     def bytes_count_sum(self, dpid):
+        """Sum of bytes count flow stats."""
         return self.flows_counters('byte_count',
                                    dpid,
-                                   sum=True)
+                                   total=True)
 
-    def flows_counters(self, field, dpid, counter=None, rate=None, total=False):
+    def flows_counters(self, field, dpid, counter=None, rate=None,
+                       total=False):
+        """Calculate flows statistics.
+
+        The returned statistics are both per flow and for the sum of flows
+        """
+        # pylint: disable=too-many-arguments
+        # pylint: disable=unused-variable
         start_date = request.args.get('start_date', 0)
         end_date = request.args.get('end_date', 0)
+        # pylint: enable=unused-variable
 
         if total:
             count_flows = 0
@@ -450,7 +463,7 @@ class Main(KytosNApp):
 
         for flow in flows:
             count = getattr(flow, field)
-            if sum:
+            if total:
                 count_flows += count
             else:
                 per_second = count / flow.duration_sec
