@@ -1,28 +1,24 @@
 """Main module of amlight/kytos_flow_manager Kytos Network Application.
 
-# TODO: <<<< Insert here your NApp description >>>>
+This NApp does operations with flows not covered by Kytos itself.
 """
 
-from kytos.core import KytosNApp, log, rest
-from kytos.core.switch import Switch
-from kytos.core.helpers import listen_to
-from napps.amlight.sdntrace import constants
-from napps.amlight.sdntrace.shared.switches import Switches
-from napps.amlight.kytos_flow_manager.utils import Flows, ACTION_TYPES
-from napps.amlight.sdntrace.shared.extd_nw_types import VLAN, TCP, UDP
-from napps.amlight.kytos_flow_manager import settings
-from pyof.v0x01.common.flow_match import FlowWildCards
-from pyof.v0x01.common.action import ActionType
-from pyof.v0x01.controller2switch.flow_mod import FlowMod as FlowMod10
-from pyof.v0x04.controller2switch.flow_mod import FlowMod as FlowMod13
-from pyof.foundation.network_types import Ethernet, IPv4
-import pyof.v0x01.controller2switch.common as common01
-from collections import defaultdict
-import weakref
-from flask import request, jsonify
-import json, dill
-import ipaddress
 import hashlib
+import ipaddress
+import json
+
+import pyof.v0x01.controller2switch.common as common01
+import pyof.v0x04.controller2switch.common as common04
+from pyof.v0x01.common.flow_match import FlowWildCards
+from pyof.v0x04.common.flow_instructions import InstructionType
+from flask import jsonify, request
+from kytos.core import KytosNApp, log, rest
+from kytos.core.helpers import listen_to
+import napps.amlight.kytos_flow_manager.match_fields
+from napps.amlight.sdntrace import constants
+from napps.kytos.of_core.v0x01.flow import Action as Action10
+from napps.kytos.of_core.v0x04.flow import Action as Action13
+from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
 
 
 class GenericFlow(object):
