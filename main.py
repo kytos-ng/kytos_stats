@@ -26,62 +26,16 @@ import hashlib
 
 
 class GenericFlow(object):
-    def __init__(self, version=0x01, in_port=0, phy_port=None, eth_src=None,
-                 eth_dst=None, eth_type=None, vlan_vid=None, vlan_pcp=None,
-                 ip_tos=None, ip_dscp=None, ip_ecn=None, ip_proto=None,
-                 ipv4_src=None, ipv4_dst=None, ipv6_src=None, ipv6_dst=None,
-                 tcp_src=None, tcp_dst=None, udp_src=None, udp_dst=None,
-                 sctp_src=None, sctp_dst=None, icmpv4_type=None,
-                 icmpv4_code=None, arp_op=None, arp_spa=None, arp_tpa=None,
-                 arp_sha=None, arp_tha=None, ipv6_flabel=None, icmpv6_type=None,
-                 icmpv6_code=None, ipv6_nd_target=None, ipv6_nd_sll=None,
-                 ipv6_nd_tll=None, mpls_label=None, mpls_tc=None, mpls_bos=None,
-                 pbb_isid=None, tunnel_id=None, ipv6_exthdr=None,
-                 wildcards=None, idle_timeout=0, hard_timeout=0, duration_sec=0,
-                 packet_count=0, byte_count=0, priority=0, table_id=0xff,
-                 cookie=None, buffer_id=None, actions=None):
+    """Class to represent a flow.
+
+        This class represents a flow regardless of the OF version."""
+
+    def __init__(self, version='0x01', match=None, idle_timeout=0,
+                 hard_timeout=0, duration_sec=0, packet_count=0, byte_count=0,
+                 priority=0, table_id=0xff, cookie=None, buffer_id=None,
+                 actions=None):
         self.version = version
-        self.in_port = in_port
-        self.phy_port = phy_port
-        self.eth_src = eth_src
-        self.eth_dst = eth_dst
-        self.eth_type = eth_type
-        self.vlan_vid = vlan_vid
-        self.vlan_pcp = vlan_pcp
-        self.ip_tos = ip_tos
-        self.ip_dscp = ip_dscp
-        self.ip_ecn = ip_ecn
-        self.ip_proto = ip_proto
-        self.ipv4_src = ipv4_src
-        self.ipv4_dst = ipv4_dst
-        self.ipv6_src = ipv6_src
-        self.ipv6_dst = ipv6_dst
-        self.tcp_src = tcp_src
-        self.tcp_dst = tcp_dst
-        self.udp_src = udp_src
-        self.udp_dst = udp_dst
-        self.sctp_src = sctp_src
-        self.sctp_dst = sctp_dst
-        self.icmpv4_type = icmpv4_type
-        self.icmpv4_code = icmpv4_code
-        self.arp_op = arp_op
-        self.arp_spa = arp_spa
-        self.arp_tpa = arp_tpa
-        self.arp_sha = arp_sha
-        self.arp_tha = arp_tha
-        self.ipv6_flabel = ipv6_flabel
-        self.icmpv6_type = icmpv6_type
-        self.icmpv6_code = icmpv6_code
-        self.ipv6_nd_target = ipv6_nd_target
-        self.ipv6_nd_sll = ipv6_nd_sll
-        self.ipv6_nd_tll = ipv6_nd_tll
-        self.mpls_label = mpls_label
-        self.mpls_tc = mpls_tc
-        self.mpls_bos = mpls_bos
-        self.pbb_isid = pbb_isid
-        self.tunnel_id = tunnel_id
-        self.ipv6_exthdr = ipv6_exthdr
-        self.wildcards = wildcards
+        self.match = match if match else {}
         self.idle_timeout = idle_timeout
         self.hard_timeout = hard_timeout
         self.duration_sec = duration_sec
@@ -103,47 +57,8 @@ class GenericFlow(object):
         """
         hash_result = hashlib.md5()
         hash_result.update(str(self.version).encode('utf-8'))
-        hash_result.update(str(self.in_port).encode('utf-8'))
-        hash_result.update(str(self.phy_port).encode('utf-8'))
-        hash_result.update(str(self.eth_src).encode('utf-8'))
-        hash_result.update(str(self.eth_dst).encode('utf-8'))
-        hash_result.update(str(self.eth_type).encode('utf-8'))
-        hash_result.update(str(self.vlan_vid).encode('utf-8'))
-        hash_result.update(str(self.vlan_pcp).encode('utf-8'))
-        hash_result.update(str(self.ip_tos).encode('utf-8'))
-        hash_result.update(str(self.ip_dscp).encode('utf-8'))
-        hash_result.update(str(self.ip_ecn).encode('utf-8'))
-        hash_result.update(str(self.ip_proto).encode('utf-8'))
-        hash_result.update(str(self.ipv4_src).encode('utf-8'))
-        hash_result.update(str(self.ipv4_dst).encode('utf-8'))
-        hash_result.update(str(self.ipv6_src).encode('utf-8'))
-        hash_result.update(str(self.ipv6_dst).encode('utf-8'))
-        hash_result.update(str(self.tcp_src).encode('utf-8'))
-        hash_result.update(str(self.tcp_dst).encode('utf-8'))
-        hash_result.update(str(self.udp_src).encode('utf-8'))
-        hash_result.update(str(self.udp_dst).encode('utf-8'))
-        hash_result.update(str(self.sctp_src).encode('utf-8'))
-        hash_result.update(str(self.sctp_dst).encode('utf-8'))
-        hash_result.update(str(self.icmpv4_type).encode('utf-8'))
-        hash_result.update(str(self.icmpv4_code).encode('utf-8'))
-        hash_result.update(str(self.arp_op).encode('utf-8'))
-        hash_result.update(str(self.arp_spa).encode('utf-8'))
-        hash_result.update(str(self.arp_tpa).encode('utf-8'))
-        hash_result.update(str(self.arp_sha).encode('utf-8'))
-        hash_result.update(str(self.arp_tha).encode('utf-8'))
-        hash_result.update(str(self.ipv6_flabel).encode('utf-8'))
-        hash_result.update(str(self.icmpv6_type).encode('utf-8'))
-        hash_result.update(str(self.icmpv6_code).encode('utf-8'))
-        hash_result.update(str(self.ipv6_nd_target).encode('utf-8'))
-        hash_result.update(str(self.ipv6_nd_sll).encode('utf-8'))
-        hash_result.update(str(self.ipv6_nd_tll).encode('utf-8'))
-        hash_result.update(str(self.mpls_label).encode('utf-8'))
-        hash_result.update(str(self.mpls_tc).encode('utf-8'))
-        hash_result.update(str(self.mpls_bos).encode('utf-8'))
-        hash_result.update(str(self.pbb_isid).encode('utf-8'))
-        hash_result.update(str(self.tunnel_id).encode('utf-8'))
-        hash_result.update(str(self.ipv6_exthdr).encode('utf-8'))
-        hash_result.update(str(self.wildcards).encode('utf-8'))
+        for value in self.match.values():
+            hash_result.update(str(value).encode('utf-8'))
         hash_result.update(str(self.idle_timeout).encode('utf-8'))
         hash_result.update(str(self.hard_timeout).encode('utf-8'))
         hash_result.update(str(self.priority).encode('utf-8'))
@@ -154,49 +69,10 @@ class GenericFlow(object):
         return hash_result.hexdigest()
 
     def to_dict(self):
+        """Convert flow to a dictionary."""
         flow_dict = {}
         flow_dict['version'] = self.version
-        flow_dict['in_port'] = self.in_port
-        flow_dict['phy_port'] = self.phy_port
-        flow_dict['eth_src'] = self.eth_src
-        flow_dict['eth_dst'] = self.eth_dst
-        flow_dict['eth_type'] = self.eth_type
-        flow_dict['vlan_vid'] = self.vlan_vid
-        flow_dict['vlan_pcp'] = self.vlan_pcp
-        flow_dict['ip_tos'] = self.ip_tos
-        flow_dict['ip_dscp'] = self.ip_dscp
-        flow_dict['ip_ecn'] = self.ip_ecn
-        flow_dict['ip_proto'] = self.ip_proto
-        flow_dict['ipv4_src'] = self.ipv4_src
-        flow_dict['ipv4_dst'] = self.ipv4_dst
-        flow_dict['ipv6_src'] = self.ipv6_src
-        flow_dict['ipv6_dst'] = self.ipv6_dst
-        flow_dict['tcp_src'] = self.tcp_src
-        flow_dict['tcp_dst'] = self.tcp_dst
-        flow_dict['udp_src'] = self.udp_src
-        flow_dict['udp_dst'] = self.udp_dst
-        flow_dict['sctp_src'] = self.sctp_src
-        flow_dict['sctp_dst'] = self.sctp_dst
-        flow_dict['icmpv4_type'] = self.icmpv4_type
-        flow_dict['icmpv4_code'] = self.icmpv4_code
-        flow_dict['arp_op'] = self.arp_op
-        flow_dict['arp_spa'] = self.arp_spa
-        flow_dict['arp_tpa'] = self.arp_tpa
-        flow_dict['arp_sha'] = self.arp_sha
-        flow_dict['arp_tha'] = self.arp_tha
-        flow_dict['ipv6_flabel'] = self.ipv6_flabel
-        flow_dict['icmpv6_type'] = self.icmpv6_type
-        flow_dict['icmpv6_code'] = self.icmpv6_code
-        flow_dict['ipv6_nd_target'] = self.ipv6_nd_target
-        flow_dict['ipv6_nd_sll'] = self.ipv6_nd_sll
-        flow_dict['ipv6_nd_tll'] = self.ipv6_nd_tll
-        flow_dict['mpls_label'] = self.mpls_label
-        flow_dict['mpls_tc'] = self.mpls_tc
-        flow_dict['mpls_bos'] = self.mpls_bos
-        flow_dict['pbb_isid'] = self.pbb_isid
-        flow_dict['tunnel_id'] = self.tunnel_id
-        flow_dict['ipv6_exthdr'] = self.ipv6_exthdr
-        flow_dict['wildcards'] = self.wildcards
+        flow_dict.update(self.match)
         flow_dict['idle_timeout'] = self.idle_timeout
         flow_dict['hard_timeout'] = self.hard_timeout
         flow_dict['priority'] = self.priority
@@ -205,102 +81,117 @@ class GenericFlow(object):
         flow_dict['buffer_id'] = self.buffer_id
         flow_dict['actions'] = []
         for action in self.actions:
-            action_dict = {}
-            for attr_key, attr_value in action.__dict__.items():
-                action_dict[attr_key] = '%s' % attr_value
-            flow_dict['actions'].append(action_dict)
+            flow_dict['actions'].append(action.as_dict())
 
         return flow_dict
 
     def to_json(self):
+        """Return a json version of the flow."""
         return json.dumps(self.to_dict())
 
-    @staticmethod
-    def from_dict(flow_dict):
-        flow = GenericFlow()
-        for attr_name, value in flow_dict.items():
-            if attr_name == 'actions':
-                flow.actions = []
-                for action in value:
-                    new_action = ACTION_TYPES[int(action['action_type'])]()
-                    for action_attr_name, action_attr_value in action.items():
-                        setattr(new_action, action_attr_name, action_attr_value)
-                    flow.actions.append(new_action)
-            else:
-                setattr(flow, attr_name, value)
-        return flow
+    # @staticmethod
+    # def from_dict(flow_dict):
+    #     """Create a flow from a dict."""
+    #     flow = GenericFlow()
+    #     for attr_name, value in flow_dict.items():
+    #         if attr_name == 'actions':
+    #             flow.actions = []
+    #             for action in value:
+    #                 new_action = ACTION_TYPES[int(action['action_type'])]()
+    #                 for action_attr_name, action_attr_value in action.items():
+    #                     setattr(new_action, action_attr_name, action_attr_value)
+    #                 flow.actions.append(new_action)
+    #         else:
+    #             setattr(flow, attr_name, value)
+    #     return flow
 
     @classmethod
-    def from_flow_stats(cls, flow_stats, version=0x01):
+    def from_flow_stats(cls, flow_stats, version='0x01'):
+        """Create a flow from OF flow stats."""
         flow = GenericFlow(version=version)
-        if version == 0x01:
-            flow.idle_timeout = flow_stats.idle_timeout.value
-            flow.hard_timeout = flow_stats.hard_timeout.value
-            flow.priority = flow_stats.priority.value
-            flow.table_id = flow_stats.table_id.value
-            flow.wildcards = flow_stats.match.wildcards.value
-            flow.in_port = flow_stats.match.in_port.value
-            flow.eth_src = flow_stats.match.dl_src.value
-            flow.eth_dst = flow_stats.match.dl_dst.value
-            flow.vlan_vid = flow_stats.match.dl_vlan.value
-            flow.vlan_pcp = flow_stats.match.dl_vlan_pcp.value
-            flow.eth_type = flow_stats.match.dl_type.value
-            flow.ip_tos = flow_stats.match.nw_tos.value
-            flow.ipv4_src = flow_stats.match.nw_src.value
-            flow.ipv4_dst = flow_stats.match.nw_dst.value
-            flow.tcp_src = flow_stats.match.tp_src.value
-            flow.tcp_dst = flow_stats.match.tp_dst.value
-            flow.duration_sec = flow_stats.duration_sec.value
-            flow.packet_count = flow_stats.packet_count.value
-            flow.byte_count = flow_stats.byte_count.value
+        flow.idle_timeout = flow_stats.idle_timeout.value
+        flow.hard_timeout = flow_stats.hard_timeout.value
+        flow.priority = flow_stats.priority.value
+        flow.table_id = flow_stats.table_id.value
+        flow.duration_sec = flow_stats.duration_sec.value
+        flow.packet_count = flow_stats.packet_count.value
+        flow.byte_count = flow_stats.byte_count.value
+        if version == '0x01':
+            flow.match['wildcards'] = flow_stats.match.wildcards.value
+            flow.match['in_port'] = flow_stats.match.in_port.value
+            flow.match['eth_src'] = flow_stats.match.dl_src.value
+            flow.match['eth_dst'] = flow_stats.match.dl_dst.value
+            flow.match['vlan_vid'] = flow_stats.match.dl_vlan.value
+            flow.match['vlan_pcp'] = flow_stats.match.dl_vlan_pcp.value
+            flow.match['eth_type'] = flow_stats.match.dl_type.value
+            flow.match['ip_tos'] = flow_stats.match.nw_tos.value
+            flow.match['ipv4_src'] = flow_stats.match.nw_src.value
+            flow.match['ipv4_dst'] = flow_stats.match.nw_dst.value
+            flow.match['ip_proto'] = flow_stats.match.nw_proto.value
+            flow.match['tcp_src'] = flow_stats.match.tp_src.value
+            flow.match['tcp_dst'] = flow_stats.match.tp_dst.value
             flow.actions = []
             for of_action in flow_stats.actions:
                 action = Action10.from_of_action(of_action)
                 flow.actions.append(action)
+        elif version == '0x04':
+            for match in flow_stats.match.oxm_match_fields:
+                match_field = MatchFieldFactory.from_of_tlv(match)
+                flow.match[match_field.name] = match_field
+            flow.actions = []
+            for instruction in flow_stats.instructions:
+                if instruction.instruction_type == \
+                        InstructionType.OFPIT_APPLY_ACTIONS:
+                    for of_action in instruction.actions:
+                        action = Action13.from_of_action(of_action)
+                        flow.actions.append(action)
         return flow
 
-    def match(self, args):
-        if self.version == 0x01:
+    def do_match(self, args):
+        """Match a packet against this flow."""
+        if self.version == '0x01':
             return self.match10(args)
-        elif self.version == 0x04:
+        elif self.version == '0x04':
             return self.match13(args)
+        return None
 
     def match10(self, args):
+        """Match a packet against this flow (OF1.0)."""
         log.debug('Matching packet')
-        if not self.wildcards & FlowWildCards.OFPFW_IN_PORT:
+        if not self.match['wildcards'] & FlowWildCards.OFPFW_IN_PORT:
             if 'in_port' not in args:
                 return False
-            if self.in_port != int(args['in_port']):
+            if self.match['in_port'] != int(args['in_port']):
                 return False
-        if not self.wildcards & FlowWildCards.OFPFW_DL_VLAN_PCP:
+        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_VLAN_PCP:
             if 'vlan_pcp' not in args:
                 return False
-            if self.vlan_pcp != int(args['vlan_pcp']):
+            if self.match['vlan_pcp'] != int(args['vlan_pcp']):
                 return False
-        if not self.wildcards & FlowWildCards.OFPFW_DL_VLAN:
+        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_VLAN:
             if 'vlan_vid' not in args:
                 return False
-            if self.vlan_vid != int(args['vlan_vid']):
+            if self.match['vlan_vid'] != args['vlan_vid'][-1]:
                 return False
-        if not self.wildcards & FlowWildCards.OFPFW_DL_SRC:
+        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_SRC:
             if 'eth_src' not in args:
                 return False
-            if self.eth_src != args['eth_src']:
+            if self.match['eth_src'] != args['eth_src']:
                 return False
-        if not self.wildcards & FlowWildCards.OFPFW_DL_DST:
+        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_DST:
             if 'eth_dst' not in args:
                 return False
-            if self.eth_dst != args['eth_dst']:
+            if self.match['eth_dst'] != args['eth_dst']:
                 return False
-        if not self.wildcards & FlowWildCards.OFPFW_DL_TYPE:
+        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_TYPE:
             if 'eth_type' not in args:
                 return False
-            if self.eth_type != int(args['eth_type']):
+            if self.match['eth_type'] != int(args['eth_type']):
                 return False
-        if self.eth_type == constants.IPv4:
-            flow_ip_int = int(ipaddress.IPv4Address(self.ipv4_src))
+        if self.match['eth_type'] == constants.IPv4:
+            flow_ip_int = int(ipaddress.IPv4Address(self.match['ipv4_src']))
             if flow_ip_int != 0:
-                mask = (self.wildcards & FlowWildCards.OFPFW_NW_SRC_MASK) >> \
+                mask = (self.match['wildcards'] & FlowWildCards.OFPFW_NW_SRC_MASK) >> \
                        FlowWildCards.OFPFW_NW_SRC_SHIFT
                 if mask > 32:
                     mask = 32
@@ -311,9 +202,9 @@ class GenericFlow(object):
                 if ip_int & mask != flow_ip_int & mask:
                     return False
 
-            flow_ip_int = int(ipaddress.IPv4Address(self.ipv4_dst))
+            flow_ip_int = int(ipaddress.IPv4Address(self.match['ipv4_dst']))
             if flow_ip_int != 0:
-                mask = (self.wildcards & FlowWildCards.OFPFW_NW_DST_MASK) >> \
+                mask = (self.match['wildcards'] & FlowWildCards.OFPFW_NW_DST_MASK) >> \
                        FlowWildCards.OFPFW_NW_DST_SHIFT
                 if mask > 32:
                     mask = 32
@@ -323,31 +214,27 @@ class GenericFlow(object):
                 ip_int = int(ipaddress.IPv4Address(args['ipv4_dst']))
                 if ip_int & mask != flow_ip_int & mask:
                     return False
-            if not self.wildcards & FlowWildCards.OFPFW_NW_TOS:
+            if not self.match['wildcards'] & FlowWildCards.OFPFW_NW_TOS:
                 if 'ip_tos' not in args:
                     return False
-                if self.ip_tos != int(args['ip_tos']):
+                if self.match['ip_tos'] != int(args['ip_tos']):
                     return False
-            if not self.wildcards & FlowWildCards.OFPFW_NW_PROTO:
+            if not self.match['wildcards'] & FlowWildCards.OFPFW_NW_PROTO:
                 if 'ip_proto' not in args:
                     return False
-                if self.ip_proto != int(args['ip_proto']):
+                if self.match['ip_proto'] != int(args['ip_proto']):
                     return False
-            if not self.wildcards & FlowWildCards.OFPFW_TP_SRC:
+            if not self.match['wildcards'] & FlowWildCards.OFPFW_TP_SRC:
                 if 'tp_src' not in args:
                     return False
-                if self.tcp_src != int(args['tp_src']):
+                if self.match['tcp_src'] != int(args['tp_src']):
                     return False
-            if not self.wildcards & FlowWildCards.OFPFW_TP_DST:
+            if not self.match['wildcards'] & FlowWildCards.OFPFW_TP_DST:
                 if 'tp_dst' not in args:
                     return False
-                if self.tcp_dst != int(args['tp_dst']):
+                if self.match['tcp_dst'] != int(args['tp_dst']):
                     return False
-
-        # for action in self.actions:
-        #     if action.action_type == ActionType.OFPAT_OUTPUT:
-        #         return '%s' % action.port.value
-        return self.to_dict()
+        return self
 
     def match13(self, args):
         pass
