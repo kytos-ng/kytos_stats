@@ -267,10 +267,10 @@ class Main(KytosNApp):
         So, if you have any setup routine, insert it here.
         """
         log.info('Starting Kytos/Amlight flow manager')
-        Switch.match_flows = self.match_flows
-        Switch.match_and_apply = self.match_and_apply
-        for dpid, switch in self.controller.switches.items():
-            switch.generic_flows = []
+        #Switch.match_flows = self.match_flows
+        #Switch.match_and_apply = self.match_and_apply
+        for switch in self.controller.switches.values():
+            switch.metadata['generic_flows'] = []
 
     def execute(self):
         """This method is executed right after the setup method execution.
@@ -446,7 +446,7 @@ class Main(KytosNApp):
 
         # We don't have statistics persistence yet, so for now this only works
         # for start and end equals to zero
-        flows = self.controller.get_switch_by_dpid(dpid).generic_flows
+        flows = self.controller.get_switch_by_dpid(dpid).metadata['generic_flows']
 
         for flow in flows:
             count = getattr(flow, field)
