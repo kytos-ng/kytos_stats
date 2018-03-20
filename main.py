@@ -41,7 +41,7 @@ class GenericFlow(object):
         self.table_id = table_id
         self.cookie = cookie
         self.buffer_id = buffer_id
-        self.actions = actions
+        self.actions = actions if actions else []
 
     @property
     def id(self):
