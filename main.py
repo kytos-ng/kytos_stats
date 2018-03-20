@@ -254,7 +254,8 @@ class GenericFlow(object):
             flow.packet_count = flow_stats.packet_count.value
             flow.byte_count = flow_stats.byte_count.value
             flow.actions = []
-            for action in flow_stats.actions:
+            for of_action in flow_stats.actions:
+                action = Action10.from_of_action(of_action)
                 flow.actions.append(action)
         return flow
 
@@ -438,34 +439,17 @@ class Main(KytosNApp):
         port = None
         actions = None
         if flow:
-            actions = flow['actions']
-            if self.ofp_version == '0x01':
+            actions = flow.actions
+            if switch.ofp_version == '0x01':
                 for action in actions:
-                    action_type = int(action['action_type'])
-                    if action_type == ActionType.OFPAT_OUTPUT:
-                        port = int(action['port'])
-                    elif action_type == ActionType.OFPAT_SET_VLAN_VID:
-                        args['vlan_vid'] = int(action['vlan_id'])
-                    elif action_type == ActionType.OFPAT_SET_VLAN_PCP:
-                        args['vlan_pcp'] = int(action['vlan_pcp'])
-                    elif action_type == ActionType.OFPAT_STRIP_VLAN:
-                        pass  # TODO: strip vlan
-                    elif action_type == ActionType.OFPAT_SET_DL_SRC:
-                        args['eth_src'] = int(action['dl_src'])
-                    elif action_type == ActionType.OFPAT_SET_DL_DST:
-                        args['eth_dst'] = int(action['dl_dst'])
-                    elif action_type == ActionType.OFPAT_SET_NW_SRC:
-                        args['ip4_src'] = int(action['nw_src'])
-                    elif action_type == ActionType.OFPAT_SET_NW_DST:
-                        args['ip4_dst'] = int(action['nw_dst'])
-                    elif action_type == ActionType.OFPAT_SET_NW_TOS:
-                        args['ip_tos'] = int(action['nw_tos'])
-                    elif action_type == ActionType.OFPAT_SET_TP_SRC:
-                        args['tp_src'] = int(action['tp_src'])
-                    elif action_type == ActionType.OFPAT_SET_TP_DST:
-                        args['tp_dst'] = int(action['tp_dst'])
-                    elif action_type == ActionType.OFPAT_ENQUEUE:
-                        pass  # TODO: enqueue
+                    action_type = action.action_type
+                    if action_type == 'output':
+                        port = action.port
+                    elif action_type == 'set_vlan':
+                        if 'vlan_vid' in args:
+                            args['vlan_vid'][-1] = action.vlan_id
+                        else:
+                            args['vlan_vid'] = [action.vlan_id]
         return flow, args, port
 
     @rest('packet_count/<flow_id>')
