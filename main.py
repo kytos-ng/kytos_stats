@@ -233,7 +233,23 @@ class GenericFlow(object):
         return self
 
     def match13(self, args):
-        pass
+        """Match a packet against this flow (OF1.3)."""
+        for name in self.match:
+            if name not in args:
+                return False
+            if name == 'vlan_vid':
+                field = args[name][-1]
+            else:
+                field = args[name]
+            if name not in ('ipv4_src', 'ipv4_dst', 'ipv6_src', 'ipv6_dst'):
+                if self.match[name].value != field:
+                    return False
+            else:
+                packet_ip = int(ipaddress.ip_address(field))
+                ip_addr = self.match[name].value
+                if packet_ip & ip_addr.netmask != ip_addr.address:
+                    return False
+        return self
 
 
 class Main(KytosNApp):
@@ -274,51 +290,65 @@ class Main(KytosNApp):
         pass
 
     def flow_from_id(self, flow_id):
-        for _, switch in self.controller.switches.items():
-            for flow in switch.generic_flows:
-                if flow.id == flow_id:
-                    return flow
+        """Flow from given flow_id."""
+        for switch in self.controller.switches.values():
+            try:
+                for flow in switch.metadata['generic_flows']:
+                    if flow.id == flow_id:
+                        return flow
+            except KeyError:
+                pass
         return None
 
     @rest('flow/match/<dpid>')
     def flow_match(self, dpid):
+        """Return first flow matching request."""
         switch = self.controller.get_switch_by_dpid(dpid)
-        return jsonify(switch.match_flows(request.args, False))
+        return jsonify(self.match_flows(switch, request.args, False))
 
     @rest('flow/stats/<dpid>')
     def flow_stats(self, dpid):
+        """Return all flows matching request."""
         switch = self.controller.get_switch_by_dpid(dpid)
-        return jsonify(switch.match_flows(request.args, True))
+        return jsonify(self.match_flows(switch, request.args, True))
 
     @staticmethod
-    def match_flows(self, args, many=True):
+    def match_flows(switch, args, many=True):
+        # pylint: disable=bad-staticmethod-argument
         """
-        Tries to match the packet in request against the flows installed in 
-        switch with given dpid.
-        Tries the match with each flow, in other. If many is True, tries the 
+        Match the packet in request against the flows installed in the switch.
+
+        Try the match with each flow, in other. If many is True, tries the
         match with all flows, if False, tries until the first match.
-        :param dpid: DPID of the switch
-        :param many: Boolean, indicating whether to continue after matching the 
+        :param args: packet data
+        :param many: Boolean, indicating whether to continue after matching the
                 first flow or not
         :return: If many, the list of matched flows, or the matched flow
         """
-
         response = []
-        for flow in self.generic_flows:
-            m = flow.match(args)
-            if m:
-                if many:
-                    response.append(m)
-                else:
-                    response = m
-                    break
+        try:
+            for flow in switch.metadata['generic_flows']:
+                match = flow.do_match(args)
+                if match:
+                    if many:
+                        response.append(match)
+                    else:
+                        response = match
+                        break
+        except KeyError:
+            return None
         if not many and response == []:
             return None
         return response
 
     @staticmethod
-    def match_and_apply(self, args):
-        flow = self.match_flows(args, False)
+    def match_and_apply(switch, args):
+        # pylint: disable=bad-staticmethod-argument
+        """Match flows and apply actions.
+
+        Match given packet (in args) against the switch flows and,
+        if a match flow is found, apply its actions."""
+        flow = Main.match_flows(switch, args, False)
         port = None
         actions = None
         if flow:
@@ -333,6 +363,20 @@ class Main(KytosNApp):
                             args['vlan_vid'][-1] = action.vlan_id
                         else:
                             args['vlan_vid'] = [action.vlan_id]
+            elif switch.ofp_version == '0x04':
+                for action in actions:
+                    action_type = action.action_type
+                    if action_type == 'output':
+                        port = action.port
+                    if action_type == 'push_vlan':
+                        if 'vlan_vid' not in args:
+                            args['vlan_vid'] = []
+                        args['vlan_vid'].append(0)
+                    if action_type == 'pop_vlan':
+                        if 'vlan_vid' in args:
+                            args['vlan_vid'].pop()
+                    if action_type == 'set_vlan':
+                        args['vlan_vid'][-1] = action.vlan_id
         return flow, args, port
 
     @rest('packet_count/<flow_id>')
