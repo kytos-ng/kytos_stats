@@ -19,6 +19,7 @@ from napps.amlight.sdntrace import constants
 from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action13
 from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
+from napps.amlight.kytos_flow_manager.utils import format_request
 
 
 class GenericFlow(object):
@@ -305,13 +306,18 @@ class Main(KytosNApp):
     def flow_match(self, dpid):
         """Return first flow matching request."""
         switch = self.controller.get_switch_by_dpid(dpid)
-        return jsonify(self.match_flows(switch, request.args, False))
+        flow = self.match_flows(switch, format_request(request.args), False)
+        if flow:
+            return jsonify(flow.to_dict())
+        return "No match", 404
 
     @rest('flow/stats/<dpid>')
     def flow_stats(self, dpid):
         """Return all flows matching request."""
         switch = self.controller.get_switch_by_dpid(dpid)
-        return jsonify(self.match_flows(switch, request.args, True))
+        flows = self.match_flows(switch, format_request(request.args), True)
+        flows = [flow.to_dict() for flow in flows]
+        return jsonify(flows)
 
     @staticmethod
     def match_flows(switch, args, many=True):

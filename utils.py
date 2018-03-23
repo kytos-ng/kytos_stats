@@ -99,3 +99,10 @@ class IPv6AddressWithMask:
         """Unpack IPv6 address and mask."""
         self.address = int.from_bytes(buffer[start:start+16], 'big')
         self.netmask = int.from_bytes(buffer[start+16:start+32], 'big')
+
+
+def format_request(request):
+    args = {}
+    for key, value in request.items():
+        args[key] = value
+    return args
