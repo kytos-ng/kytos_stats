@@ -12,7 +12,7 @@ import pyof.v0x04.controller2switch.common as common04
 from pyof.v0x01.common.flow_match import FlowWildCards
 from pyof.v0x04.common.flow_instructions import InstructionType
 from flask import jsonify, request
-from kytos.core import KytosNApp, log, rest
+from kytos.core import KytosNApp, log, rest, KytosEvent
 from kytos.core.helpers import listen_to
 import napps.amlight.kytos_flow_manager.match_fields
 from napps.amlight.sdntrace import constants
@@ -44,6 +44,9 @@ class GenericFlow(object):
         self.buffer_id = buffer_id
         self.actions = actions if actions else []
 
+    def __eq__(self, other):
+        return self.id == other.id
+
     @property
     def id(self):
         # pylint: disable=invalid-name
@@ -56,7 +59,10 @@ class GenericFlow(object):
         hash_result = hashlib.md5()
         hash_result.update(str(self.version).encode('utf-8'))
         for value in self.match.values():
-            hash_result.update(str(value).encode('utf-8'))
+            if self.version == '0x01':
+                hash_result.update(str(value).encode('utf-8'))
+            else:
+                hash_result.update(str(value.value).encode('utf-8'))
         hash_result.update(str(self.idle_timeout).encode('utf-8'))
         hash_result.update(str(self.hard_timeout).encode('utf-8'))
         hash_result.update(str(self.priority).encode('utf-8'))
@@ -344,7 +350,7 @@ class Main(KytosNApp):
                         break
         except KeyError:
             return None
-        if not many and response == []:
+        if not many and type(response) == list:
             return None
         return response
 
@@ -498,9 +504,12 @@ class Main(KytosNApp):
             self.handle_stats_reply(msg, switch)
             switch.msg = msg
 
-    @staticmethod
-    def handle_stats_reply(msg, switch):
+    def handle_stats_reply(self, msg, switch):
         """Insert flows received in the switch list of flows."""
+        try:
+            old_flows = switch.metadata['generic_flows']
+        except AttributeError:
+            old_flows = []
         switch.metadata['generic_flows'] = []
         for flow_stats in msg.body:
             flow = GenericFlow.from_flow_stats(flow_stats, switch.ofp_version)
@@ -509,3 +518,9 @@ class Main(KytosNApp):
             key=lambda f: (f.priority, f.duration_sec),
             reverse=True
         )
+        if switch.metadata['generic_flows'] != old_flows:
+            # Generate an event informing that flows have changed
+            event = KytosEvent('amlight/kytos_flow_manager.flows_updated')
+            event.content['switch'] = switch.dpid
+            self.controller.buffers.app.put(event)
+
