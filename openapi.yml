@@ -1,0 +1,274 @@
+openapi: 3.0.0
+info:
+  title: amlight/kytos_flow_manager
+  version: v1
+  description: Flow structures and statistics
+paths:
+  /api/amlight/kytos_flow_manager/flow/match/{dpid}:
+    get:
+      summary: Return first flow matching request.
+      description: Match the flows in switch with args in request, returning the first match
+      parameters:  
+        - name: dpid
+          schema:
+            type: string
+          required: true
+          description: Datapath ID of the switch
+          in: path
+        - name: in_port
+          schema:
+            type: string
+          required: true
+          description: Incoming port
+          in: query
+      responses:
+        200:
+          description: Describe a successful call.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prop_one:
+                    type: string
+                    description: Meaning of prop_one
+                    example: an example of prop_one
+                  second_prop:
+                    type: integer
+                    description: Meaning of second_prop
+                    example: 42
+  /api/amlight/kytos_flow_manager/flow/stats/{dpid}:
+    get:
+      summary: Return all flows matching request.
+      description: Match the flows in switch with args in request, returning all of them
+      parameters:  
+        - name: dpid
+          schema:
+            type: string
+          required: true
+          description: Datapath ID of the switch
+          in: path
+      responses:
+        200:  # You can add more responses
+          description: Describe a successful call.
+          content:
+            application/json:  # You can also use text/plain, for example
+              schema:
+                type: object  # Adapt to your response
+                properties:
+                  prop_one:
+                    type: string
+                    description: Meaning of prop_one
+                    example: an example of prop_one
+                  second_prop:
+                    type: integer
+                    description: Meaning of second_prop
+                    example: 42
+  /api/amlight/kytos_flow_manager/packet_count/{flow_id}:
+    get:
+      summary: Packet count of an specific flow.
+      description: Counters of a flow.
+      parameters:  
+        - name: flow_id
+          schema:
+            type: string
+          required: true
+          description: Flow ID
+          in: path
+      responses:
+        200:
+          description: Counters ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flow_id:
+                    type: string
+                    description: Flow ID
+                    example: 263c85082b6d446cd7b72e1a5deae428
+                  packet_counter:
+                    type: integer
+                    description: Number of packets that matched the flow
+                    example: 42
+                  packet_per_second:
+                    type: number
+                    description: Packets per second since flow creation
+                    example: 2.345
+        404:
+          description: Does not exist
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Flow not found
+  /api/amlight/kytos_flow_manager/bytes_count/{flow_id}:
+    get:
+      summary: Bytes count of an specific flow.
+      description: Counter per byte of a flow.
+      parameters:  
+        - name: flow_id
+          schema:
+            type: string
+          required: true
+          description: Flow ID
+          in: path
+      responses:
+        200:
+          description: Counters ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flow_id:
+                    type: string
+                    description: Flow ID
+                    example: 263c85082b6d446cd7b72e1a5deae428
+                  bytes_counter:
+                    type: integer
+                    description: Number of bytes in packets that matched the flow
+                    example: 427
+                  bits_per_second:
+                    type: number
+                    description: Bits per second since flow creation
+                    example: 25.345
+        404:
+          description: Does not exist
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Flow not found
+  /api/amlight/kytos_flow_manager/packet_count/per_flow/{dpid}:
+    get:
+      summary: Per flow packet count.
+      description: Packet count per flow of a switch
+      parameters: 
+        - name: dpid
+          schema:
+            type: string
+          required: true
+          description: Datapath ID
+          in: path
+      responses:
+        200:  
+          description: Counters ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    flow_id:
+                      type: string
+                      description: Flow ID
+                      example: 263c85082b6d446cd7b72e1a5deae428
+                    packet_counter:
+                      type: integer
+                      description: Number of packets that matched the flow
+                      example: 42
+                    packet_per_second:
+                      type: number
+                      description: Packets per second since flow creation
+                      example: 2.345
+        404:
+          description: Does not exist
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Switch not found
+  /api/amlight/kytos_flow_manager/packet_count/sum/{dpid}:
+    get:
+      summary: Sum of packet count flow stats.
+      description: Sum of packet counts of all flow in a switch
+      parameters: 
+        - name: dpid
+          schema:
+            type: string
+          required: true
+          description: Datapath ID
+          in: path
+      responses:
+        200:  
+          description: Counters ok
+          content:
+            application/json:
+              schema:
+                type: integer
+                example: 2004
+        404:
+          description: Does not exist
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Switch not found
+  /api/amlight/kytos_flow_manager/bytes_count/per_flow/{dpid}:
+    get:
+      summary: Per flow bytes count.
+      description: Bytes count per flow of a switch
+      parameters: 
+        - name: dpid
+          schema:
+            type: string
+          required: true
+          description: Datapath ID
+          in: path
+      responses:
+        200:  
+          description: Counters ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    flow_id:
+                      type: string
+                      description: Flow ID
+                      example: 263c85082b6d446cd7b72e1a5deae428
+                    bytes_counter:
+                      type: integer
+                      description: Number of bytes in packets that matched the flow
+                      example: 427
+                    bits_per_second:
+                      type: number
+                      description: Bits per second since flow creation
+                      example: 25.345
+        404:
+          description: Does not exist
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Switch not found
+  /api/amlight/kytos_flow_manager/bytes_count/sum/{dpid}:
+    get:
+      summary: Sum of bytes count flow stats.
+      description: Sum of bytes counts of all flow in a switch
+      parameters:  
+        - name: dpid
+          schema:
+            type: string
+          required: true
+          description: Datapath ID of the switch
+          in: path
+      responses:
+        200:  
+          description: Counters ok
+          content:
+            application/json:
+              schema:
+                type: integer
+                example: 34204
+        404:
+          description: Does not exist
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Switch not found
