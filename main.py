@@ -6,6 +6,7 @@ This NApp does operations with flows not covered by Kytos itself.
 import hashlib
 import ipaddress
 import json
+from datetime import datetime
 
 import pyof.v0x01.controller2switch.common as common01
 import pyof.v0x04.controller2switch.common as common04
@@ -275,10 +276,8 @@ class Main(KytosNApp):
         So, if you have any setup routine, insert it here.
         """
         log.info('Starting Kytos/Amlight flow manager')
-        #Switch.match_flows = self.match_flows
-        #Switch.match_and_apply = self.match_and_apply
         for switch in self.controller.switches.values():
-            switch.metadata['generic_flows'] = []
+            switch.generic_flows = []
 
     def execute(self):
         """This method is executed right after the setup method execution.
@@ -301,7 +300,7 @@ class Main(KytosNApp):
         """Flow from given flow_id."""
         for switch in self.controller.switches.values():
             try:
-                for flow in switch.metadata['generic_flows']:
+                for flow in switch.generic_flows:
                     if flow.id == flow_id:
                         return flow
             except KeyError:
@@ -340,7 +339,7 @@ class Main(KytosNApp):
         """
         response = []
         try:
-            for flow in switch.metadata['generic_flows']:
+            for flow in switch.generic_flows:
                 match = flow.do_match(args)
                 if match:
                     if many:
@@ -471,7 +470,7 @@ class Main(KytosNApp):
 
         # We don't have statistics persistence yet, so for now this only works
         # for start and end equals to zero
-        flows = self.controller.get_switch_by_dpid(dpid).metadata['generic_flows']
+        flows = self.controller.get_switch_by_dpid(dpid).generic_flows
 
         for flow in flows:
             count = getattr(flow, field)
@@ -502,25 +501,41 @@ class Main(KytosNApp):
         if msg.multipart_type == common04.MultipartType.OFPMP_FLOW:
             switch = event.source.switch
             self.handle_stats_reply(msg, switch)
-            switch.msg = msg
 
     def handle_stats_reply(self, msg, switch):
         """Insert flows received in the switch list of flows."""
         try:
-            old_flows = switch.metadata['generic_flows']
+            old_flows = switch.generic_flows
         except AttributeError:
             old_flows = []
-        switch.metadata['generic_flows'] = []
+        switch.generic_flows = []
         for flow_stats in msg.body:
             flow = GenericFlow.from_flow_stats(flow_stats, switch.ofp_version)
-            switch.metadata['generic_flows'].append(flow)
-        switch.metadata['generic_flows'].sort(
+            switch.generic_flows.append(flow)
+        switch.generic_flows.sort(
             key=lambda f: (f.priority, f.duration_sec),
             reverse=True
         )
-        if switch.metadata['generic_flows'] != old_flows:
+        if switch.generic_flows != old_flows:
             # Generate an event informing that flows have changed
             event = KytosEvent('amlight/kytos_flow_manager.flows_updated')
             event.content['switch'] = switch.dpid
             self.controller.buffers.app.put(event)
+
+            # Generate an event to store the new set of flows
+            event = KytosEvent('kytos/storehouse.create')
+            event.content['callback'] = self.storehouse_callback
+            event.content['namespace'] = 'flow history'
+            data = {'switch': switch.dpid,
+                    'date': datetime.now(),
+                    'flows': [flow.to_dict() for flow in switch.generic_flows]}
+            event.content['data'] = data
+            self.controller.buffers.app.put(event)
+
+    def storehouse_callback(self, box, error=False):
+        if error:
+            msg = 'Flow info not installed'
+        else:
+            msg = 'Flow info installed sucessfully'
+        log.info(msg)
 
