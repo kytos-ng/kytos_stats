@@ -538,4 +538,3 @@ class Main(KytosNApp):
         else:
             msg = 'Flow info installed sucessfully'
         log.info(msg)
-
