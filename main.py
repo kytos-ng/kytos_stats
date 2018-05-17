@@ -1,4 +1,4 @@
-"""Main module of amlight/kytos_flow_manager Kytos Network Application.
+"""Main module of amlight/flow_stats Kytos Network Application.
 
 This NApp does operations with flows not covered by Kytos itself.
 """
@@ -21,7 +21,7 @@ from napps.amlight.sdntrace import constants
 from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action13
 from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
-from napps.amlight.kytos_flow_manager.utils import format_request
+from napps.amlight.flow_stats.utils import format_request
 
 
 class GenericFlow(object):
@@ -274,7 +274,7 @@ class GenericFlow(object):
 
 
 class Main(KytosNApp):
-    """Main class of amlight/kytos_flow_manager NApp.
+    """Main class of amlight/flow_stats NApp.
 
     This class is the entry point for this napp.
     """
@@ -586,7 +586,7 @@ class Main(KytosNApp):
         )
         if switch.generic_flows != old_flows:
             # Generate an event informing that flows have changed
-            event = KytosEvent('amlight/kytos_flow_manager.flows_updated')
+            event = KytosEvent('amlight/flow_stats.flows_updated')
             event.content['switch'] = switch.dpid
             self.controller.buffers.app.put(event)
 

@@ -1,8 +1,8 @@
 {
   "author": "amlight",
   "username": "amlight",
-  "name": "kytos_flow_manager",
-  "description": "# TODO: <<<< Insert here your NApp description >>>>",
+  "name": "flow_stats",
+  "description": "Store flow information and show statistics about them.",
   "version": "",
   "napp_dependencies": ["kytos/of_core"],
   "license": "",

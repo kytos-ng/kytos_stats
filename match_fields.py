@@ -3,7 +3,7 @@
 Some OpenFlow 1.3 fields not yet implemented by
 Kytos but necessary for this NApp.
 """
-from napps.amlight.kytos_flow_manager.utils import (IPv4AddressWithMask,
+from napps.amlight.flow_stats.utils import (IPv4AddressWithMask,
                                                     IPv6AddressWithMask)
 from napps.kytos.of_core.v0x04.match_fields import MatchField
 from pyof.foundation.basic_types import HWAddress

@@ -1,10 +1,10 @@
 openapi: 3.0.0
 info:
-  title: amlight/kytos_flow_manager
+  title: amlight/flow_stats
   version: v1
   description: Flow structures and statistics
 paths:
-  /api/amlight/kytos_flow_manager/flow/match/{dpid}:
+  /api/amlight/flow_stats/flow/match/{dpid}:
     get:
       summary: Return first flow matching request.
       description: Match the flows in switch with args in request, returning the first match
@@ -37,7 +37,7 @@ paths:
                     type: integer
                     description: Meaning of second_prop
                     example: 42
-  /api/amlight/kytos_flow_manager/flow/stats/{dpid}:
+  /api/amlight/flow_stats/flow/stats/{dpid}:
     get:
       summary: Return all flows matching request.
       description: Match the flows in switch with args in request, returning all of them
@@ -64,7 +64,7 @@ paths:
                     type: integer
                     description: Meaning of second_prop
                     example: 42
-  /api/amlight/kytos_flow_manager/packet_count/{flow_id}:
+  /api/amlight/flow_stats/packet_count/{flow_id}:
     get:
       summary: Packet count of an specific flow.
       description: Counters of a flow.
@@ -102,7 +102,7 @@ paths:
               schema:
                 type: string
                 example: Flow not found
-  /api/amlight/kytos_flow_manager/bytes_count/{flow_id}:
+  /api/amlight/flow_stats/bytes_count/{flow_id}:
     get:
       summary: Bytes count of an specific flow.
       description: Counter per byte of a flow.
@@ -140,7 +140,7 @@ paths:
               schema:
                 type: string
                 example: Flow not found
-  /api/amlight/kytos_flow_manager/packet_count/per_flow/{dpid}:
+  /api/amlight/flow_stats/packet_count/per_flow/{dpid}:
     get:
       summary: Per flow packet count.
       description: Packet count per flow of a switch
@@ -180,7 +180,7 @@ paths:
               schema:
                 type: string
                 example: Switch not found
-  /api/amlight/kytos_flow_manager/packet_count/sum/{dpid}:
+  /api/amlight/flow_stats/packet_count/sum/{dpid}:
     get:
       summary: Sum of packet count flow stats.
       description: Sum of packet counts of all flow in a switch
@@ -206,7 +206,7 @@ paths:
               schema:
                 type: string
                 example: Switch not found
-  /api/amlight/kytos_flow_manager/bytes_count/per_flow/{dpid}:
+  /api/amlight/flow_stats/bytes_count/per_flow/{dpid}:
     get:
       summary: Per flow bytes count.
       description: Bytes count per flow of a switch
@@ -246,7 +246,7 @@ paths:
               schema:
                 type: string
                 example: Switch not found
-  /api/amlight/kytos_flow_manager/bytes_count/sum/{dpid}:
+  /api/amlight/flow_stats/bytes_count/sum/{dpid}:
     get:
       summary: Sum of bytes count flow stats.
       description: Sum of bytes counts of all flow in a switch
