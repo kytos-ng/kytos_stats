@@ -2,20 +2,21 @@
 
 This NApp does operations with flows not covered by Kytos itself.
 """
+# pylint: disable=too-many-return-statements,too-many-instance-attributes
+# pylint: disable=too-many-arguments,too-many-branches,too-many-statements
 
 import hashlib
 import ipaddress
 import json
 from datetime import datetime
 
+from flask import jsonify, request
 import pyof.v0x01.controller2switch.common as common01
 import pyof.v0x04.controller2switch.common as common04
 from pyof.v0x01.common.flow_match import FlowWildCards
 from pyof.v0x04.common.flow_instructions import InstructionType
-from flask import jsonify, request
 from kytos.core import KytosNApp, log, rest, KytosEvent
 from kytos.core.helpers import listen_to
-import napps.amlight.kytos_flow_manager.match_fields
 from napps.amlight.sdntrace import constants
 from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action13
@@ -204,7 +205,7 @@ class GenericFlow(object):
                 return False
             if self.match['eth_type'] != int(args['eth_type']):
                 return False
-        if self.match['eth_type'] == constants.IPv4:
+        if self.match['eth_type'] == constants.IPV4:
             flow_ip_int = int(ipaddress.IPv4Address(self.match['ipv4_src']))
             if flow_ip_int != 0:
                 mask = (self.match['wildcards'] & FlowWildCards.OFPFW_NW_SRC_MASK) >> \

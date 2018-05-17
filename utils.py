@@ -102,6 +102,7 @@ class IPv6AddressWithMask:
 
 
 def format_request(request):
+    """Format user request to match function format."""
     args = {}
     for key, value in request.items():
         args[key] = value
