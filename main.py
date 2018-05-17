@@ -77,7 +77,10 @@ class GenericFlow(object):
         """Convert flow to a dictionary."""
         flow_dict = {}
         flow_dict['version'] = self.version
-        flow_dict.update(self.match)
+        if self.version == '0x01':
+            flow_dict.update(self.match)
+        else:
+            flow_dict.update(self.match_to_dict())
         flow_dict['idle_timeout'] = self.idle_timeout
         flow_dict['hard_timeout'] = self.hard_timeout
         flow_dict['priority'] = self.priority
@@ -89,6 +92,14 @@ class GenericFlow(object):
             flow_dict['actions'].append(action.as_dict())
 
         return flow_dict
+
+    def match_to_dict(self):
+        """Convert a match in OF 1.3 to a dictionary."""
+        match = dict()
+        for name in self.match:
+            match[name] = self.match[name].value
+        log.info('Match %s' % match)
+        return match
 
     def to_json(self):
         """Return a json version of the flow."""
@@ -349,7 +360,7 @@ class Main(KytosNApp):
                         break
         except KeyError:
             return None
-        if not many and type(response) == list:
+        if not many and isinstance(response, list):
             return None
         return response
 
@@ -447,6 +458,62 @@ class Main(KytosNApp):
                                    dpid,
                                    total=True)
 
+    @rest('flows/<dpid>')
+    def flows_date(self, dpid):
+        """Get the list of flows in a switch at an specific point in time."""
+
+        flows_lists = []
+        flows_filled = False
+        try:
+            date = request.args['date']
+        except KeyError:
+            return 'Date missing', 400
+        try:
+            date = datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            try:
+                date = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                return 'Bad date format', 400
+
+        def storehouse_list(flows_list, error=False):
+            """Receive the list of flow ids."""
+            # pylint: disable=unused-argument
+            nonlocal flows_lists, flows_filled
+            flows_lists = flows_list
+            flows_filled = True
+
+        event = KytosEvent('kytos/storehouse.list')
+        event.content['callback'] = storehouse_list
+        event.content['namespace'] = 'flow_history_%s' % dpid
+        self.controller.buffers.app.put(event)
+
+        flows = None
+        while not flows_filled:
+            pass
+
+        event = KytosEvent('kytos/storehouse.retrieve')
+        event.content['namespace'] = 'flow_history_%s' % dpid
+        for flow_list_id in flows_lists:
+            flow_list = {}
+
+            def storehouse_retrive(box, error=False):
+                """Receive one flow."""
+                # pylint: disable=unused-argument
+                nonlocal flow_list
+                flow_list = box.data
+            event.content['box_id'] = flow_list_id
+            event.content['callback'] = storehouse_retrive
+            self.controller.buffers.app.put(event)
+            while not flow_list:
+                pass
+            if flow_list['date'] <= date:
+                log.info('Flows %s' % flows)
+                if flows is None or flow_list['date'] > flows['date']:
+                    flows = flow_list
+
+        return jsonify(flows)
+
     def flows_counters(self, field, dpid, counter=None, rate=None,
                        total=False):
         """Calculate flows statistics.
@@ -524,15 +591,17 @@ class Main(KytosNApp):
 
             # Generate an event to store the new set of flows
             event = KytosEvent('kytos/storehouse.create')
-            event.content['callback'] = self.storehouse_callback
-            event.content['namespace'] = 'flow history'
-            data = {'switch': switch.dpid,
-                    'date': datetime.now(),
+            event.content['callback'] = self.storehouse_create
+            event.content['namespace'] = 'flow_history_%s' % switch.dpid
+            data = {'date': datetime.now(),
                     'flows': [flow.to_dict() for flow in switch.generic_flows]}
             event.content['data'] = data
             self.controller.buffers.app.put(event)
 
-    def storehouse_callback(self, box, error=False):
+    @staticmethod
+    def storehouse_create(box, error=False):
+        """Log the return of an object creation in storehouse."""
+        # pylint: disable=unused-argument
         if error:
             msg = 'Flow info not installed'
         else:
