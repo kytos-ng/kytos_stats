@@ -362,7 +362,7 @@ class Main(KytosNApp):
                     else:
                         response = match
                         break
-        except KeyError:
+        except (KeyError, AttributeError):
             return None
         if not many and isinstance(response, list):
             return None
