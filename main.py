@@ -154,7 +154,10 @@ class GenericFlow(object):
         elif version == '0x04':
             for match in flow_stats.match.oxm_match_fields:
                 match_field = MatchFieldFactory.from_of_tlv(match)
-                flow.match[match_field.name] = match_field
+                field_name = match_field.name
+                if field_name == 'dl_vlan':
+                    field_name = 'vlan_vid'
+                flow.match[field_name] = match_field
             flow.actions = []
             for instruction in flow_stats.instructions:
                 if instruction.instruction_type == \
