@@ -480,7 +480,7 @@ class Main(KytosNApp):
             except ValueError:
                 return 'Bad date format', 400
 
-        def storehouse_list(flows_list, error=False):
+        def storehouse_list(event, flows_list, error=False):
             """Receive the list of flow ids."""
             # pylint: disable=unused-argument
             nonlocal flows_lists, flows_filled
@@ -501,7 +501,7 @@ class Main(KytosNApp):
         for flow_list_id in flows_lists:
             flow_list = {}
 
-            def storehouse_retrive(box, error=False):
+            def storehouse_retrive(event, box, error=False):
                 """Receive one flow."""
                 # pylint: disable=unused-argument
                 nonlocal flow_list
@@ -602,7 +602,7 @@ class Main(KytosNApp):
             self.controller.buffers.app.put(event)
 
     @staticmethod
-    def storehouse_create(box, error=False):
+    def storehouse_create(event, box, error=False):
         """Log the return of an object creation in storehouse."""
         # pylint: disable=unused-argument
         if error:

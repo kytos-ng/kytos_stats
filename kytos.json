@@ -3,7 +3,7 @@
   "username": "amlight",
   "name": "flow_stats",
   "description": "Store flow information and show statistics about them.",
-  "version": "",
+  "version": "0.1",
   "napp_dependencies": ["kytos/of_core"],
   "license": "",
   "tags": [],
