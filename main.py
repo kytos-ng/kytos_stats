@@ -509,7 +509,6 @@ class Main(KytosNApp):
             while not flow_list:
                 pass
             if flow_list['date'] <= date:
-                log.info('Flows %s' % flows)
                 if flows is None or flow_list['date'] > flows['date']:
                     flows = flow_list
 
