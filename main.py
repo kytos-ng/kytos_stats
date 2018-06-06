@@ -362,7 +362,7 @@ class Main(KytosNApp):
                     else:
                         response = match
                         break
-        except (KeyError, AttributeError):
+        except AttributeError:
             return None
         if not many and isinstance(response, list):
             return None
@@ -402,6 +402,8 @@ class Main(KytosNApp):
                     if action_type == 'pop_vlan':
                         if 'vlan_vid' in args:
                             args['vlan_vid'].pop()
+                            if len(args['vlan_vid']) == 0:
+                                del args['vlan_vid']
                     if action_type == 'set_vlan':
                         args['vlan_vid'][-1] = action.vlan_id
         return flow, args, port
