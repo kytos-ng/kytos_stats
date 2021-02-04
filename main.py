@@ -99,7 +99,6 @@ class GenericFlow(object):
         match = dict()
         for name in self.match:
             match[name] = self.match[name].value
-        log.info('Match %s' % match)
         return match
 
     def to_json(self):
@@ -609,6 +608,7 @@ class Main(KytosNApp):
         # pylint: disable=unused-argument
         if error:
             msg = 'Flow info not installed'
+            log.error(msg)
         else:
             msg = 'Flow info installed sucessfully'
-        log.info(msg)
+            log.debug(msg)
