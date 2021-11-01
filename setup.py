@@ -161,8 +161,8 @@ class CITest(TestCommand):
 
     def run(self):
         """Run unit tests with coverage, doc tests and linter."""
-        coverage_cmd = 'python3.6 setup.py coverage %s' % self.get_args()
-        lint_cmd = 'python3.6 setup.py lint'
+        coverage_cmd = 'python3 setup.py coverage %s' % self.get_args()
+        lint_cmd = 'python3 setup.py lint'
         cmd = '%s && %s' % (coverage_cmd, lint_cmd)
         check_call(cmd, shell=True)
 
@@ -295,6 +295,6 @@ setup(name=f'{NAPP_USERNAME}_{NAPP_NAME}',
       classifiers=[
           'License :: OSI Approved :: MIT License',
           'Operating System :: POSIX :: Linux',
-          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3',
           'Topic :: System :: Networking',
       ])
