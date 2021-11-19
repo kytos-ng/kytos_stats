@@ -9,6 +9,7 @@ import hashlib
 import ipaddress
 import json
 from datetime import datetime
+from threading import Lock
 
 from flask import jsonify, request
 import pyof.v0x01.controller2switch.common as common01
@@ -292,6 +293,8 @@ class Main(KytosNApp):
         log.info('Starting Kytos/Amlight flow manager')
         for switch in self.controller.switches.values():
             switch.generic_flows = []
+        self.switch_stats_xid = {}
+        self.switch_stats_lock = {}
 
     def execute(self):
         """This method is executed right after the setup method execution.
@@ -579,15 +582,23 @@ class Main(KytosNApp):
             old_flows = switch.generic_flows
         except AttributeError:
             old_flows = []
-        switch.generic_flows = []
-        for flow_stats in msg.body:
-            flow = GenericFlow.from_flow_stats(flow_stats, switch.ofp_version)
-            switch.generic_flows.append(flow)
-        switch.generic_flows.sort(
-            key=lambda f: (f.priority, f.duration_sec),
-            reverse=True
+        is_new_xid = (
+            int(msg.header.xid) != self.switch_stats_xid.get(switch.id, 0)
         )
-        if switch.generic_flows != old_flows:
+        self.switch_stats_lock.setdefault(switch.id, Lock())
+        with self.switch_stats_lock[switch.id]:
+            if is_new_xid:
+                switch.generic_flows = []
+                self.switch_stats_xid[switch.id] = int(msg.header.xid)
+            for flow_stats in msg.body:
+                flow = GenericFlow.from_flow_stats(flow_stats,
+                                                   switch.ofp_version)
+                switch.generic_flows.append(flow)
+            switch.generic_flows.sort(
+                key=lambda f: (f.priority, f.duration_sec),
+                reverse=True
+            )
+        if is_new_xid and switch.generic_flows != old_flows:
             # Generate an event informing that flows have changed
             event = KytosEvent('amlight/flow_stats.flows_updated')
             event.content['switch'] = switch.dpid
