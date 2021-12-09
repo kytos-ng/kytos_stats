@@ -530,20 +530,23 @@ class Main(KytosNApp):
         is_new_xid = (
             int(msg.header.xid) != self.switch_stats_xid.get(switch.id, 0)
         )
+        is_last_part = msg.flags.value % 2 == 0
         self.switch_stats_lock.setdefault(switch.id, Lock())
         with self.switch_stats_lock[switch.id]:
             if is_new_xid:
-                switch.generic_flows = []
+                switch.generic_new_flows = []
                 self.switch_stats_xid[switch.id] = int(msg.header.xid)
             for flow_stats in msg.body:
                 flow = GenericFlow.from_flow_stats(flow_stats,
                                                    switch.ofp_version)
-                switch.generic_flows.append(flow)
-            switch.generic_flows.sort(
-                key=lambda f: (f.priority, f.duration_sec),
-                reverse=True
-            )
-        if is_new_xid and switch.generic_flows != old_flows:
+                switch.generic_new_flows.append(flow)
+            if is_last_part:
+                switch.generic_flows = switch.generic_new_flows
+                switch.generic_flows.sort(
+                    key=lambda f: (f.priority, f.duration_sec),
+                    reverse=True
+                )
+        if is_new_xid and is_last_part and switch.generic_flows != old_flows:
             # Generate an event informing that flows have changed
             event = KytosEvent('amlight/flow_stats.flows_updated')
             event.content['switch'] = switch.dpid
