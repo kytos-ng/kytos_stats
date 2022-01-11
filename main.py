@@ -337,6 +337,8 @@ class Main(KytosNApp):
     def flow_stats(self, dpid):
         """Return all flows matching request."""
         switch = self.controller.get_switch_by_dpid(dpid)
+        if not switch:
+            return f"switch {dpid} not found", 404
         flows = self.match_flows(switch, format_request(request.args), True)
         flows = [flow.to_dict() for flow in flows]
         return jsonify(flows)
