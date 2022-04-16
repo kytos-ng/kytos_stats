@@ -1,5 +1,6 @@
 """Utility classes and definitions."""
 import struct
+
 from napps.amlight.sdntrace.shared.singleton import Singleton
 
 
@@ -8,16 +9,16 @@ class Flows(metaclass=Singleton):
 
     def __init__(self):
         """Institate an empty flow dict."""
-        self._flows = dict()
+        self._flows = {}
 
     def clear(self, dpid):
         """Clear the list of flows of the given switch."""
-        self._flows[dpid] = list()
+        self._flows[dpid] = []
 
     def add_flow(self, dpid, flow):
         """Add a flow to the list of flows of the given switch."""
         if dpid not in self._flows:
-            self._flows[dpid] = list()
+            self._flows[dpid] = []
         self._flows[dpid].append(flow)
 
     def get_flows(self, dpid):
@@ -41,7 +42,7 @@ class IPv4AddressWithMask:
         self.netmask = netmask
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.as_dot_string())
+        return f'<{self.__class__.__name__}: {self.as_dot_string()}>'
 
     def __str__(self):
         return self.as_dot_string()
@@ -57,11 +58,12 @@ class IPv4AddressWithMask:
             if stripped_mask != self.netmask:
                 break
         mask = 33 - i
-        return '%s/%s' % (address, mask)
+        return f'{address}/{mask}'
 
     def unpack(self, buffer, start=0):
         """Unpack IPv4 address and netmask."""
-        self.address, self.netmask = struct.unpack('!2I', buffer[start:start+8])
+        self.address, self.netmask = struct.unpack('!2I',
+                                                   buffer[start:start+8])
 
 
 class IPv6AddressWithMask:
@@ -73,7 +75,7 @@ class IPv6AddressWithMask:
         self.netmask = netmask
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.as_comma_string())
+        return f'<{self.__class__.__name__}: {self.as_comma_string()}>'
 
     def __str__(self):
         return self.as_comma_string()
@@ -86,14 +88,14 @@ class IPv6AddressWithMask:
         for addr in addrs:
             packed = struct.pack('!Q', addr)
             unpacked_bytes = struct.unpack('!4H', packed)
-            address.append(':'.join(['%x' % x for x in unpacked_bytes]))
+            address.append(':'.join([f'{b:x}' for b in unpacked_bytes]))
         address = ':'.join(address)
         for i in range(1, 129):
             stripped_mask = self.netmask >> i << i
             if stripped_mask != self.netmask:
                 break
         mask = 129 - i
-        return '%s/%s' % (address, mask)
+        return f'{address}/{mask}'
 
     def unpack(self, buffer, start=0):
         """Unpack IPv6 address and mask."""
