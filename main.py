@@ -8,24 +8,23 @@ This NApp does operations with flows not covered by Kytos itself.
 import hashlib
 import ipaddress
 import json
-from datetime import datetime
 from threading import Lock
 
-from flask import jsonify, request
 import pyof.v0x01.controller2switch.common as common01
 import pyof.v0x04.controller2switch.common as common04
-from pyof.v0x01.common.flow_match import FlowWildCards
-from pyof.v0x04.common.flow_instructions import InstructionType
-from kytos.core import KytosNApp, log, rest, KytosEvent
+from flask import jsonify, request
+from kytos.core import KytosEvent, KytosNApp, log, rest
 from kytos.core.helpers import listen_to
+from napps.amlight.flow_stats.utils import format_request
 from napps.amlight.sdntrace import constants
 from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action13
 from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
-from napps.amlight.flow_stats.utils import format_request
+from pyof.v0x01.common.flow_match import FlowWildCards
+from pyof.v0x04.common.flow_instructions import InstructionType
 
 
-class GenericFlow(object):
+class GenericFlow():
     """Class to represent a flow.
 
         This class represents a flow regardless of the OF version."""
@@ -97,7 +96,8 @@ class GenericFlow(object):
 
     def match_to_dict(self):
         """Convert a match in OF 1.3 to a dictionary."""
-        match = dict()
+        # pylint: disable=consider-using-dict-items
+        match = {}
         for name in self.match:
             match[name] = self.match[name].value
         return match
@@ -115,8 +115,12 @@ class GenericFlow(object):
     #             flow.actions = []
     #             for action in value:
     #                 new_action = ACTION_TYPES[int(action['action_type'])]()
-    #                 for action_attr_name, action_attr_value in action.items():
-    #                     setattr(new_action, action_attr_name, action_attr_value)
+    #                 for action_attr_name,
+    #                     action_attr_value in action.items():
+    #
+    #                     setattr(new_action,
+    #                             action_attr_name,
+    #                             action_attr_value)
     #                 flow.actions.append(new_action)
     #         else:
     #             setattr(flow, attr_name, value)
@@ -171,7 +175,7 @@ class GenericFlow(object):
         """Match a packet against this flow."""
         if self.version == '0x01':
             return self.match10(args)
-        elif self.version == '0x04':
+        if self.version == '0x04':
             return self.match13(args)
         return None
 
@@ -211,10 +215,10 @@ class GenericFlow(object):
         if self.match['eth_type'] == constants.IPV4:
             flow_ip_int = int(ipaddress.IPv4Address(self.match['ipv4_src']))
             if flow_ip_int != 0:
-                mask = (self.match['wildcards'] & FlowWildCards.OFPFW_NW_SRC_MASK) >> \
-                       FlowWildCards.OFPFW_NW_SRC_SHIFT
-                if mask > 32:
-                    mask = 32
+                mask = ((self.match['wildcards'] &
+                         FlowWildCards.OFPFW_NW_SRC_MASK) >>
+                        FlowWildCards.OFPFW_NW_SRC_SHIFT)
+                mask = min(mask, 32)
                 if mask != 32 and 'ipv4_src' not in args:
                     return False
                 mask = (0xffffffff << mask) & 0xffffffff
@@ -224,10 +228,10 @@ class GenericFlow(object):
 
             flow_ip_int = int(ipaddress.IPv4Address(self.match['ipv4_dst']))
             if flow_ip_int != 0:
-                mask = (self.match['wildcards'] & FlowWildCards.OFPFW_NW_DST_MASK) >> \
-                       FlowWildCards.OFPFW_NW_DST_SHIFT
-                if mask > 32:
-                    mask = 32
+                mask = ((self.match['wildcards'] &
+                         FlowWildCards.OFPFW_NW_DST_MASK) >>
+                        FlowWildCards.OFPFW_NW_DST_SHIFT)
+                mask = min(mask, 32)
                 if mask != 32 and 'ipv4_dst' not in args:
                     return False
                 mask = (0xffffffff << mask) & 0xffffffff
@@ -258,6 +262,7 @@ class GenericFlow(object):
 
     def match13(self, args):
         """Match a packet against this flow (OF1.3)."""
+        # pylint: disable=consider-using-dict-items
         for name in self.match:
             if name not in args:
                 return False
@@ -304,14 +309,12 @@ class Main(KytosNApp):
 
             self.execute_as_loop(30)  # 30-second interval.
         """
-        pass
 
     def shutdown(self):
         """This method is executed when your napp is unloaded.
 
         If you have some cleanup procedure, insert it here.
         """
-        pass
 
     def flow_from_id(self, flow_id):
         """Flow from given flow_id."""
@@ -382,6 +385,7 @@ class Main(KytosNApp):
         flow = Main.match_flows(switch, args, False)
         port = None
         actions = None
+        # pylint: disable=too-many-nested-blocks
         if flow:
             actions = flow.actions
             if switch.ofp_version == '0x01':
