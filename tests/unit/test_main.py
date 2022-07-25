@@ -1,8 +1,18 @@
 """Module to test the main napp file."""
+import json
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from napps.amlight.flow_stats.tests.helpers import get_controller_mock
+from kytos.lib.helpers import get_controller_mock, get_test_client
+from napps.amlight.flow_stats.main import GenericFlow, Main
+from napps.kytos.of_core.v0x01.flow import Action as Action10
+from napps.kytos.of_core.v0x04.flow import Action as Action40
+from napps.kytos.of_core.v0x04.match_fields import (
+    MatchDLVLAN,
+    MatchFieldFactory,
+)
+from pyof.foundation.basic_types import UBInt32
+from pyof.v0x04.common.flow_instructions import InstructionType
 
 
 # pylint: disable=too-many-public-methods, too-many-lines
@@ -21,8 +31,6 @@ class TestMain(TestCase):
         # Decorators have to be patched before the methods that are
         # decorated with them are imported.
         patch("kytos.core.helpers.run_on_thread", lambda x: x).start()
-        # pylint: disable=import-outside-toplevel
-        from napps.amlight.flow_stats.main import Main
 
         self.napp = Main(get_controller_mock())
 
@@ -58,43 +66,426 @@ class TestMain(TestCase):
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/flow/match/ "
+                "/api/amlight/flow_stats/flow/match/ ",
             ),
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/flow/stats/"
+                "/api/amlight/flow_stats/flow/stats/",
             ),
             (
                 {"flow_id": "[flow_id]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/packet_count/"
+                "/api/amlight/flow_stats/packet_count/",
             ),
             (
                 {"flow_id": "[flow_id]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/bytes_count/"
+                "/api/amlight/flow_stats/bytes_count/",
             ),
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/packet_count/per_flow/"
+                "/api/amlight/flow_stats/packet_count/per_flow/",
             ),
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/packet_count/sum/"
+                "/api/amlight/flow_stats/packet_count/sum/",
             ),
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/bytes_count/per_flow/"
+                "/api/amlight/flow_stats/bytes_count/per_flow/",
             ),
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/bytes_count/sum/"
+                "/api/amlight/flow_stats/bytes_count/sum/",
             ),
         ]
         urls = self.get_napp_urls(self.napp)
         self.assertEqual(len(expected_urls), len(urls))
+
+    def test_packet_count__fail(self):
+        """Test packet_count rest call with wrong flow_id."""
+        flow_id = "123456789"
+        rest_name = "packet_count"
+        response = self._get_rest_response(rest_name, flow_id)
+
+        self.assertEqual(response.data, b"Flow does not exist")
+
+    def test_packet_count(self):
+        """Test packet_count rest call."""
+        flow_id = "1"
+        rest_name = "packet_count"
+        self._patch_switch_flow(flow_id)
+        response = self._get_rest_response(rest_name, flow_id)
+
+        json_response = json.loads(response.data)
+        self.assertEqual(json_response["flow_id"], flow_id)
+        self.assertEqual(json_response["packet_counter"], 40)
+        self.assertEqual(json_response["packet_per_second"], 2.0)
+
+    def test_bytes_count_fail(self):
+        """Test bytes_count rest call with wrong flow_id."""
+        flow_id = "123456789"
+        rest_name = "bytes_count"
+        response = self._get_rest_response(rest_name, flow_id)
+
+        self.assertEqual(response.data, b"Flow does not exist")
+
+    def test_bytes_count(self):
+        """Test bytes_count rest call."""
+        flow_id = "1"
+        rest_name = "bytes_count"
+        self._patch_switch_flow(flow_id)
+        response = self._get_rest_response(rest_name, flow_id)
+
+        json_response = json.loads(response.data)
+        self.assertEqual(json_response["flow_id"], flow_id)
+        self.assertEqual(json_response["bytes_counter"], 10)
+        self.assertEqual(json_response["bits_per_second"], 4.0)
+
+    def test_packet_count_per_flow(self):
+        """Test packet_count_per_flow rest call."""
+        flow_id = "1"
+        rest_name = "packet_count/per_flow"
+        self._patch_switch_flow(flow_id)
+
+        dpid_id = 111
+        response = self._get_rest_response(rest_name, dpid_id)
+
+        json_response = json.loads(response.data)
+        self.assertEqual(json_response[0]["flow_id"], flow_id)
+        self.assertEqual(json_response[0]["packet_counter"], 40)
+        self.assertEqual(json_response[0]["packet_per_second"], 2.0)
+
+    def test_packet_count_sum(self):
+        """Test packet_count_sum rest call."""
+        flow_id = "1"
+        rest_name = "packet_count/sum"
+        self._patch_switch_flow(flow_id)
+
+        dpid_id = 111
+        response = self._get_rest_response(rest_name, dpid_id)
+        json_response = json.loads(response.data)
+
+        self.assertEqual(json_response, 40)
+
+    def test_bytes_count_per_flow(self):
+        """Test bytes_count_per_flow rest call."""
+        flow_id = "1"
+        rest_name = "bytes_count/per_flow"
+        self._patch_switch_flow(flow_id)
+
+        dpid_id = 111
+        response = self._get_rest_response(rest_name, dpid_id)
+
+        json_response = json.loads(response.data)
+        self.assertEqual(json_response[0]["flow_id"], flow_id)
+        self.assertEqual(json_response[0]["bytes_counter"], 10)
+        self.assertEqual(json_response[0]["bits_per_second"], 4.0)
+
+    def test_bytes_count_sum(self):
+        """Test bytes_count_sum rest call."""
+        flow_id = "1"
+        rest_name = "bytes_count/sum"
+        self._patch_switch_flow(flow_id)
+
+        dpid_id = 111
+        response = self._get_rest_response(rest_name, dpid_id)
+        json_response = json.loads(response.data)
+
+        self.assertEqual(json_response, 10)
+
+    def _patch_switch_flow(self, flow_id):
+        """Helper method to patch controller to return switch/flow data."""
+        # patching the flow_stats object in the switch
+        self.napp.controller.switches = MagicMock()
+        flow = self._get_mocked_flow_stats()
+        flow.id = flow_id
+        switch = MagicMock()
+        switch.generic_flows = [flow]
+        self.napp.controller.switches.values.return_value = [switch]
+        self.napp.controller.get_switch_by_dpid = MagicMock()
+        self.napp.controller.get_switch_by_dpid.return_value = switch
+
+    def _get_rest_response(self, rest_name, url_id):
+        """Helper method to call a rest endpoint."""
+        # call rest
+        api = get_test_client(get_controller_mock(), self.napp)
+        url = f"{self.server_name_url}/{rest_name}/{url_id}"
+        response = api.get(url, content_type="application/json")
+
+        return response
+
+    # pylint: disable=no-self-use
+    def _get_mocked_flow_stats(self):
+        """Helper method to create a mock flow_stats object."""
+        flow_stats = MagicMock()
+        flow_stats.id = 123
+        flow_stats.byte_count = 10
+        flow_stats.duration_sec = 20
+        flow_stats.duration_nsec = 30
+        flow_stats.packet_count = 40
+        return flow_stats
+
+    def _get_mocked_flow_base(self):
+        """Helper method to create a mock flow object."""
+        flow = MagicMock()
+        flow.id = 456
+        flow.switch = None
+        flow.table_id = None
+        flow.match = None
+        flow.priority = None
+        flow.idle_timeout = None
+        flow.hard_timeout = None
+        flow.cookie = None
+        flow.stats = self._get_mocked_flow_stats()
+        return flow
+
+    @patch("napps.amlight.flow_stats.main.GenericFlow.from_flow_stats")
+    def test_handle_stats_reply(self, mock_from_flow):
+        """Test handle_stats_reply rest call."""
+        mock_from_flow.return_value = self._get_mocked_flow_base()
+
+        def side_effect(event):
+            self.assertTrue(f"{event}", "amlight/flow_stats.flows_updated")
+            self.assertTrue(event.content["switch"], 111)
+
+        self.napp.controller = MagicMock()
+        self.napp.controller.buffers.app.put.side_effect = side_effect
+
+        msg = MagicMock()
+        msg.flags.value = 2
+        msg.body = [self._get_mocked_flow_stats()]
+        event_switch = MagicMock()
+        event_switch.generic_flows = []
+        event_switch.dpid = 111
+        self.napp.handle_stats_reply(msg, event_switch)
+
+        # Check if important trace dont trigger the event
+        # It means that the CP trace is the same to the DP trace
+        self.napp.controller.buffers.app.put.assert_called_once()
+
+        # Check mocked flow id
+        self.assertEqual(event_switch.generic_flows[0].id, 456)
+
+
+# pylint: disable=too-many-public-methods, too-many-lines
+class TestGenericFlow(TestCase):
+    """Test the GenericFlow class."""
+
+    # pylint: disable=no-member
+    def test_from_flow_stats__x01(self):
+        """Test from_flow_stats method 0x01 version."""
+        flow_stats = MagicMock()
+
+        flow_stats.actions = [
+            Action10.from_dict(
+                {
+                    "action_type": "output",
+                    "port": UBInt32(1),
+                }
+            ).as_of_action(),
+        ]
+
+        result = GenericFlow.from_flow_stats(flow_stats, version="0x01")
+
+        self.assertEqual(result.idle_timeout, flow_stats.idle_timeout.value)
+        self.assertEqual(result.hard_timeout, flow_stats.hard_timeout.value)
+        self.assertEqual(result.priority, flow_stats.priority.value)
+        self.assertEqual(result.table_id, flow_stats.table_id.value)
+        self.assertEqual(result.duration_sec, flow_stats.duration_sec.value)
+        self.assertEqual(result.packet_count, flow_stats.packet_count.value)
+        self.assertEqual(result.byte_count, flow_stats.byte_count.value)
+
+        exp_match = flow_stats.match
+        self.assertEqual(result.match["wildcards"], exp_match.wildcards.value)
+        self.assertEqual(result.match["in_port"], exp_match.in_port.value)
+        self.assertEqual(result.match["eth_src"], exp_match.dl_src.value)
+        self.assertEqual(result.match["eth_dst"], exp_match.dl_dst.value)
+        self.assertEqual(result.match["vlan_vid"], exp_match.dl_vlan.value)
+        self.assertEqual(result.match["vlan_pcp"], exp_match.dl_vlan_pcp.value)
+        self.assertEqual(result.match["eth_type"], exp_match.dl_type.value)
+        self.assertEqual(result.match["ip_tos"], exp_match.nw_tos.value)
+        self.assertEqual(result.match["ipv4_src"], exp_match.nw_src.value)
+        self.assertEqual(result.match["ipv4_dst"], exp_match.nw_dst.value)
+        self.assertEqual(result.match["ip_proto"], exp_match.nw_proto.value)
+        self.assertEqual(result.match["tcp_src"], exp_match.tp_src.value)
+        self.assertEqual(result.match["tcp_dst"], exp_match.tp_dst.value)
+
+    def test_from_flow_stats__x04_match(self):
+        """Test from_flow_stats method 0x04 version with match."""
+        flow_stats = MagicMock()
+        flow_stats.actions = [
+            Action10.from_dict(
+                {
+                    "action_type": "output",
+                    "port": UBInt32(1),
+                }
+            ).as_of_action(),
+        ]
+
+        flow_stats.match.oxm_match_fields = [MatchDLVLAN(42).as_of_tlv()]
+
+        result = GenericFlow.from_flow_stats(flow_stats, version="0x04")
+
+        match_expect = MatchFieldFactory.from_of_tlv(
+            flow_stats.match.oxm_match_fields[0]
+        )
+        self.assertEqual(result.match["vlan_vid"], match_expect)
+
+    def test_from_flow_stats__x04_action(self):
+        """Test from_flow_stats method 0x04 version with action."""
+        flow_stats = MagicMock()
+
+        action_dict = {
+            "action_type": "output",
+            "port": UBInt32(1),
+        }
+        instruction = MagicMock()
+        instruction.instruction_type = InstructionType.OFPIT_APPLY_ACTIONS
+        instruction.actions = [Action40.from_dict(action_dict).as_of_action()]
+        flow_stats.instructions = [instruction]
+
+        result = GenericFlow.from_flow_stats(flow_stats, version="0x04")
+        self.assertEqual(result.actions[0].as_dict(), action_dict)
+
+    def test_to_dict__x01(self):
+        """Test to_dict method 0x01 version."""
+        action = Action10.from_dict(
+            {
+                "action_type": "set_vlan",
+                "vlan_id": 6,
+            }
+        )
+        match = {}
+        match["in_port"] = 11
+
+        generic_flow = GenericFlow(
+            version="0x01",
+            match=match,
+            idle_timeout=1,
+            hard_timeout=2,
+            duration_sec=3,
+            packet_count=4,
+            byte_count=5,
+            priority=6,
+            table_id=7,
+            cookie=8,
+            buffer_id=9,
+            actions=[action],
+        )
+
+        result = generic_flow.to_dict()
+
+        expected = {
+            "version": "0x01",
+            "idle_timeout": 1,
+            "in_port": 11,
+            "hard_timeout": 2,
+            "priority": 6,
+            "table_id": 7,
+            "cookie": 8,
+            "buffer_id": 9,
+            "actions": [{"vlan_id": 6, "action_type": "set_vlan"}],
+        }
+
+        self.assertEqual(result, expected)
+
+    def test_to_dict__x04(self):
+        """Test to_dict method 0x04 version."""
+        match = {}
+        match["in_port"] = MagicMock()
+        match["in_port"].value = 22
+
+        generic_flow = GenericFlow(
+            version="0x04",
+            match=match,
+        )
+
+        result = generic_flow.to_dict()
+        expected = {
+            "version": "0x04",
+            "in_port": 22,
+            "idle_timeout": 0,
+            "hard_timeout": 0,
+            "priority": 0,
+            "table_id": 255,
+            "cookie": None,
+            "buffer_id": None,
+            "actions": [],
+        }
+
+        self.assertEqual(result, expected)
+
+    def test_match_to_dict(self):
+        """Test match_to_dict method for 0x04 version."""
+        match = {}
+        match["in_port"] = MagicMock()
+        match["in_port"].value = 22
+        match["vlan_vid"] = MagicMock()
+        match["vlan_vid"].value = 123
+
+        generic_flow = GenericFlow(
+            version="0x04",
+            match=match,
+        )
+        result = generic_flow.match_to_dict()
+        expected = {"in_port": 22, "vlan_vid": 123}
+
+        self.assertEqual(result, expected)
+
+    def test_match_to_dict__empty_match(self):
+        """Test match_to_dict method for 0x04 version, with empty matches."""
+        generic_flow = GenericFlow(version="0x04")
+        result = generic_flow.match_to_dict()
+        self.assertEqual(result, {})
+
+    def test_id__x01(self):
+        """Test id method 0x01 version."""
+        action = Action10.from_dict(
+            {
+                "action_type": "set_vlan",
+                "vlan_id": 6,
+            }
+        )
+        match = {}
+        match["in_port"] = 11
+
+        generic_flow = GenericFlow(
+            version="0x01",
+            match=match,
+            idle_timeout=1,
+            hard_timeout=2,
+            priority=6,
+            table_id=7,
+            cookie=8,
+            buffer_id=9,
+            actions=[action],
+        )
+
+        self.assertEqual(generic_flow.id, "78d18f2cffd3eaa069afbf0995b90db9")
+
+    def test_id__x04(self):
+        """Test id method 0x04 version."""
+        match = {}
+        match["in_port"] = MagicMock()
+        match["in_port"].value = 22
+        match["vlan_vid"] = MagicMock()
+        match["vlan_vid"].value = 123
+
+        generic_flow = GenericFlow(
+            version="0x04",
+            match=match,
+            idle_timeout=1,
+            hard_timeout=2,
+            priority=6,
+            table_id=7,
+            cookie=8,
+            buffer_id=9,
+        )
+
+        self.assertEqual(generic_flow.id, "2d843f76b8b254fad6c6e2a114590440")
