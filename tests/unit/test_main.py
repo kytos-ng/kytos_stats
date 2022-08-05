@@ -2,8 +2,14 @@
 import json
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
-
-from kytos.lib.helpers import get_controller_mock, get_test_client
+from importlib import reload
+import sys
+from kytos.lib.helpers import (
+    get_controller_mock,
+    get_test_client,
+    get_kytos_event_mock,
+    get_switch_mock,
+)
 from napps.amlight.flow_stats.main import GenericFlow, Main
 from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action40
@@ -13,11 +19,21 @@ from napps.kytos.of_core.v0x04.match_fields import (
 )
 from pyof.foundation.basic_types import UBInt32
 from pyof.v0x04.common.flow_instructions import InstructionType
+from pyof.v0x01.controller2switch.common import StatsType
+from pyof.v0x04.controller2switch.common import MultipartType
 
 
 # pylint: disable=too-many-public-methods, too-many-lines
 class TestMain(TestCase):
     """Test the Main class."""
+    @classmethod
+    def setUpClass(cls):
+        # The decorator run_on_thread is patched, so methods that listen
+        # for events do not run on threads while tested.
+        # Decorators have to be patched before the methods that are
+        # decorated with them are imported.
+        reload(sys.modules["kytos.core.helpers"])
+        patch("kytos.core.helpers.run_on_thread", lambda x: x).start()
 
     def setUp(self):
         """Execute steps before each tests.
@@ -25,13 +41,6 @@ class TestMain(TestCase):
         Set the server_name_url_url from amlight/flow_stats
         """
         self.server_name_url = "http://localhost:8181/api/amlight/flow_stats"
-
-        # The decorator run_on_thread is patched, so methods that listen
-        # for events do not run on threads while tested.
-        # Decorators have to be patched before the methods that are
-        # decorated with them are imported.
-        patch("kytos.core.helpers.run_on_thread", lambda x: x).start()
-
         self.napp = Main(get_controller_mock())
 
     @staticmethod
@@ -199,6 +208,78 @@ class TestMain(TestCase):
 
         self.assertEqual(json_response, 10)
 
+    @patch("napps.amlight.flow_stats.main.Main.match_flows")
+    def test_flow_match(self, mock_match_flows):
+        """Test flow_match rest call."""
+        flow = GenericFlow()
+        flow.actions = [
+            Action10.from_dict(
+                {
+                    "action_type": "output",
+                    "port": "1",
+                }
+            ),
+        ]
+        flow.version = "0x04"
+        mock_match_flows.return_value = flow
+
+        flow_id = "1"
+        rest_name = "flow/match"
+        self._patch_switch_flow(flow_id)
+
+        dpid_id = "aa:00:00:00:00:00:00:11"
+        response = self._get_rest_response(rest_name, dpid_id)
+        json_response = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json_response["actions"][0]["action_type"], "output")
+        self.assertEqual(json_response["actions"][0]["port"], "1")
+        self.assertEqual(json_response["version"], "0x04")
+
+    @patch("napps.amlight.flow_stats.main.Main.match_flows")
+    def test_flow_match_fail(self, mock_match_flows):
+        """Test flow_match rest call."""
+        mock_match_flows.return_value = None
+
+        flow_id = "1"
+        rest_name = "flow/match"
+        self._patch_switch_flow(flow_id)
+
+        dpid_id = "aa:00:00:00:00:00:00:11"
+        response = self._get_rest_response(rest_name, dpid_id)
+
+        self.assertEqual(response.status_code, 404)
+
+    @patch("napps.amlight.flow_stats.main.Main.match_flows")
+    def test_flow_stats(self, mock_match_flows):
+        """Test flow_match rest call."""
+        flow = GenericFlow()
+        flow.actions = [
+            Action10.from_dict(
+                {
+                    "action_type": "output",
+                    "port": "1",
+                }
+            ),
+        ]
+        flow.version = "0x04"
+        mock_match_flows.return_value = [flow]
+
+        flow_id = "1"
+        rest_name = "flow/stats"
+        self._patch_switch_flow(flow_id)
+
+        dpid_id = "aa:00:00:00:00:00:00:11"
+        response = self._get_rest_response(rest_name, dpid_id)
+        json_response = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        print(json_response)
+        self.assertEqual(json_response[0]["actions"][0]["action_type"],
+                         "output")
+        self.assertEqual(json_response[0]["actions"][0]["port"], "1")
+        self.assertEqual(json_response[0]["version"], "0x04")
+
     def _patch_switch_flow(self, flow_id):
         """Helper method to patch controller to return switch/flow data."""
         # patching the flow_stats object in the switch
@@ -271,6 +352,77 @@ class TestMain(TestCase):
 
         # Check mocked flow id
         self.assertEqual(event_switch.generic_flows[0].id, 456)
+
+    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply")
+    def test_handle_stats_reply_0x01(self, mock_handle_stats):
+        """Test handle stats reply."""
+        flow_msg = MagicMock()
+        flow_msg.body = "A"
+        flow_msg.body_type = StatsType.OFPST_FLOW
+
+        switch_v0x01 = get_switch_mock("00:00:00:00:00:00:00:01", 0x01)
+
+        name = "kytos/of_core.v0x01.messages.in.ofpt_stats_reply"
+        content = {"source": switch_v0x01.connection, "message": flow_msg}
+        event = get_kytos_event_mock(name=name, content=content)
+
+        self.napp.handle_stats_reply_0x01(event)
+        mock_handle_stats.assert_called_once()
+
+    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply")
+    def test_handle_stats_reply_0x01__fail(self, mock_handle_stats):
+        """Test handle stats reply."""
+        flow_msg = MagicMock()
+        flow_msg.body = "A"
+        flow_msg.body_type = StatsType.OFPST_DESC
+
+        switch_v0x01 = get_switch_mock("00:00:00:00:00:00:00:01", 0x01)
+
+        name = "kytos/of_core.v0x01.messages.in.ofpt_stats_reply"
+        content = {"source": switch_v0x01.connection, "message": flow_msg}
+        event = get_kytos_event_mock(name=name, content=content)
+
+        self.napp.handle_stats_reply_0x01(event)
+
+        mock_handle_stats.assert_not_called()
+
+    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply")
+    def test_handle_stats_reply_0x04(self, mock_handle_stats):
+        """Test handle stats reply."""
+        flow_msg = MagicMock()
+        flow_msg.body = "A"
+        flow_msg.multipart_type = MultipartType.OFPMP_FLOW
+
+        switch_v0x04 = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+
+        name = "kytos/of_core.v0x04.messages.in.ofpt_multipart_reply"
+        content = {"source": switch_v0x04.connection, "message": flow_msg}
+        event = get_kytos_event_mock(name=name, content=content)
+        event.content["message"] = flow_msg
+
+        self.napp.handle_stats_reply_0x04(event)
+
+        mock_handle_stats.assert_called_once()
+
+    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply")
+    def test_handle_stats_reply_0x04_fail(self, mock_handle_stats):
+        """Test handle stats reply."""
+        flow_msg = MagicMock()
+        flow_msg.body = "A"
+
+        flow_msg.multipart_type = MultipartType.OFPMP_PORT_DESC
+
+        switch_v0x04 = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+
+        name = "kytos/of_core.v0x04.messages.in.ofpt_multipart_reply"
+        content = {"source": switch_v0x04.connection, "message": flow_msg}
+
+        event = get_kytos_event_mock(name=name, content=content)
+        event.content["message"] = flow_msg
+
+        self.napp.handle_stats_reply_0x04(event)
+
+        mock_handle_stats.assert_not_called()
 
 
 # pylint: disable=too-many-public-methods, too-many-lines

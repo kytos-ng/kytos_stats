@@ -512,16 +512,24 @@ class Main(KytosNApp):
         return jsonify(count_flows)
 
     @listen_to('kytos/of_core.v0x01.messages.in.ofpt_stats_reply')
+    def on_stats_reply_0x01(self, event):
+        """Capture flow stats messages for v0x01 switches."""
+        self.handle_stats_reply_0x01(event)
+
     def handle_stats_reply_0x01(self, event):
-        """Capture flow stats messages for OpenFlow 1.0."""
+        """Handle stats replies for v0x01 switches."""
         msg = event.content['message']
         if msg.body_type == common01.StatsType.OFPST_FLOW:
             switch = event.source.switch
             self.handle_stats_reply(msg, switch)
 
     @listen_to('kytos/of_core.v0x04.messages.in.ofpt_multipart_reply')
-    def handle_stats_reply_0x04(self, event):
+    def on_stats_reply_0x04(self, event):
         """Capture flow stats messages for OpenFlow 1.3."""
+        self.handle_stats_reply_0x04(event)
+
+    def handle_stats_reply_0x04(self, event):
+        """Handle flow stats messages for OpenFlow 1.3."""
         msg = event.content['message']
         if msg.multipart_type == common04.MultipartType.OFPMP_FLOW:
             switch = event.source.switch
