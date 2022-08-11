@@ -2,8 +2,6 @@
 import json
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
-from importlib import reload
-import sys
 from kytos.lib.helpers import (
     get_controller_mock,
     get_test_client,
@@ -26,14 +24,6 @@ from pyof.v0x04.controller2switch.common import MultipartType
 # pylint: disable=too-many-public-methods, too-many-lines
 class TestMain(TestCase):
     """Test the Main class."""
-    @classmethod
-    def setUpClass(cls):
-        # The decorator run_on_thread is patched, so methods that listen
-        # for events do not run on threads while tested.
-        # Decorators have to be patched before the methods that are
-        # decorated with them are imported.
-        reload(sys.modules["kytos.core.helpers"])
-        patch("kytos.core.helpers.run_on_thread", lambda x: x).start()
 
     def setUp(self):
         """Execute steps before each tests.
