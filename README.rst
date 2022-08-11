@@ -13,7 +13,7 @@
 
 Overview
 ========
-Napp responsible for providing a Generic Flow and stats 
+Napp responsible for providing a Generic Flow and OpenFlow stats
 
 Installing
 ==========
