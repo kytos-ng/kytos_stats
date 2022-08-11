@@ -1,4 +1,4 @@
-"""Module to test the main napp file."""
+"""Module to test the utils.py file."""
 from unittest import TestCase
 
 from napps.amlight.flow_stats.utils import (
