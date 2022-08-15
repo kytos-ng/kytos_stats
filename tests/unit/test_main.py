@@ -273,12 +273,11 @@ class TestMain(TestCase):
     def _patch_switch_flow(self, flow_id):
         """Helper method to patch controller to return switch/flow data."""
         # patching the flow_stats object in the switch
-        self.napp.controller.switches = MagicMock()
         flow = self._get_mocked_flow_stats()
         flow.id = flow_id
         switch = MagicMock()
         switch.generic_flows = [flow]
-        self.napp.controller.switches.values.return_value = [switch]
+        self.napp.controller.switches = {"1": switch}
         self.napp.controller.get_switch_by_dpid = MagicMock()
         self.napp.controller.get_switch_by_dpid.return_value = switch
 
