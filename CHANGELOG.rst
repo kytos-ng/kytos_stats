@@ -23,12 +23,20 @@ Fixed
 Security
 ========
 
+[2022.2.1] - 2022-08-15
+***********************
+
+Fixed
+=====
+- Made a shallow copy when iterating on shared data structure to avoid RuntimeError size changed
+
+
 [2022.2.0] - 2022-08-08
 ***********************
 
-General Information
+general information
 ===================
-- Added unit tests and increased unit test coverage
+- added unit tests and increased unit test coverage
 
 
 [2022.1.0] - 2022-02-08
