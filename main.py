@@ -60,7 +60,7 @@ class GenericFlow():
         """
         hash_result = hashlib.md5()
         hash_result.update(str(self.version).encode('utf-8'))
-        for value in self.match.values():
+        for value in self.match.copy().values():
             if self.version == '0x01':
                 hash_result.update(str(value).encode('utf-8'))
             else:
@@ -98,7 +98,7 @@ class GenericFlow():
         """Convert a match in OF 1.3 to a dictionary."""
         # pylint: disable=consider-using-dict-items
         match = {}
-        for name in self.match:
+        for name in self.match.copy():
             match[name] = self.match[name].value
         return match
 
@@ -263,7 +263,7 @@ class GenericFlow():
     def match13(self, args):
         """Match a packet against this flow (OF1.3)."""
         # pylint: disable=consider-using-dict-items
-        for name in self.match:
+        for name in self.match.copy():
             if name not in args:
                 return False
             if name == 'vlan_vid':
@@ -296,7 +296,7 @@ class Main(KytosNApp):
         So, if you have any setup routine, insert it here.
         """
         log.info('Starting Kytos/Amlight flow manager')
-        for switch in self.controller.switches.values():
+        for switch in self.controller.switches.copy().values():
             switch.generic_flows = []
         self.switch_stats_xid = {}
         self.switch_stats_lock = {}
@@ -318,7 +318,7 @@ class Main(KytosNApp):
 
     def flow_from_id(self, flow_id):
         """Flow from given flow_id."""
-        for switch in self.controller.switches.values():
+        for switch in self.controller.switches.copy().values():
             try:
                 for flow in switch.generic_flows:
                     if flow.id == flow_id:
