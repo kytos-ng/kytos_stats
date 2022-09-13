@@ -11,7 +11,6 @@ import json
 from threading import Lock
 
 import pyof.v0x01.controller2switch.common as common01
-import pyof.v0x04.controller2switch.common as common04
 from flask import jsonify, request
 from kytos.core import KytosEvent, KytosNApp, log, rest
 from kytos.core.helpers import listen_to
@@ -551,18 +550,6 @@ class Main(KytosNApp):
         """Handle stats replies for v0x01 switches."""
         msg = event.content['message']
         if msg.body_type == common01.StatsType.OFPST_FLOW:
-            switch = event.source.switch
-            self.handle_stats_reply(msg, switch)
-
-    @listen_to('kytos/of_core.v0x04.messages.in.ofpt_multipart_reply')
-    def on_stats_reply_0x04(self, event):
-        """Capture flow stats messages for OpenFlow 1.3."""
-        self.handle_stats_reply_0x04(event)
-
-    def handle_stats_reply_0x04(self, event):
-        """Handle flow stats messages for OpenFlow 1.3."""
-        msg = event.content['message']
-        if msg.multipart_type == common04.MultipartType.OFPMP_FLOW:
             switch = event.source.switch
             self.handle_stats_reply(msg, switch)
 
