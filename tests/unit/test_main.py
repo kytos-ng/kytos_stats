@@ -301,6 +301,16 @@ class TestMain(TestCase):
         flow_stats.packet_count = 40
         return flow_stats
 
+    def _get_mocked_multipart_replies_flows(self):
+        """Helper method to create mock multipart replies flows"""
+        flow = self._get_mocked_flow_base()
+
+        instruction = MagicMock()
+        flow.instructions = [instruction]
+
+        replies_flows = [flow]
+        return replies_flows
+
     def _get_mocked_flow_base(self):
         """Helper method to create a mock flow object."""
         flow = MagicMock()
@@ -412,6 +422,45 @@ class TestMain(TestCase):
         self.napp.handle_stats_reply_0x04(event)
 
         mock_handle_stats.assert_not_called()
+
+    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply_received")
+    def test_handle_stats_received(self, mock_handle_stats):
+        """Test handle_stats_received function."""
+
+        switch_v0x04 = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        replies_flows = self._get_mocked_multipart_replies_flows()
+        name = "kytos/of_core.flow_stats.received"
+        content = {"switch": switch_v0x04, "replies_flows": replies_flows}
+
+        event = get_kytos_event_mock(name=name, content=content)
+
+        self.napp.handle_stats_received(event)
+        mock_handle_stats.assert_called_once()
+
+    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply_received")
+    def test_handle_stats_received_fail(self, mock_handle_stats):
+        """Test handle_stats_received function for
+        fail when replies_flows is not in content."""
+
+        switch_v0x04 = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        name = "kytos/of_core.flow_stats.received"
+        content = {"switch": switch_v0x04}
+
+        event = get_kytos_event_mock(name=name, content=content)
+
+        self.napp.handle_stats_received(event)
+        mock_handle_stats.assert_not_called()
+
+    @patch("napps.amlight.flow_stats.main.GenericFlow.from_replies_flows")
+    def test_handle_stats_reply_received(self, mock_from_flow):
+        """Test handle_stats_reply_received call."""
+        mock_from_flow.return_value = self._get_mocked_flow_base()
+
+        event_switch = MagicMock()
+        flows_mock = self._get_mocked_multipart_replies_flows()
+        self.napp.handle_stats_reply_received(event_switch, flows_mock)
+
+        self.assertEqual(event_switch.generic_flows[0].id, 456)
 
 
 # pylint: disable=too-many-public-methods, too-many-lines
