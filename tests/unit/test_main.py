@@ -11,14 +11,10 @@ from kytos.lib.helpers import (
 from napps.amlight.flow_stats.main import GenericFlow, Main
 from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action40
-from napps.kytos.of_core.v0x04.match_fields import (
-    MatchDLVLAN,
-    MatchFieldFactory,
-)
+from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
+from napps.kytos.of_core.v0x04.flow import Match as Match40
 from pyof.foundation.basic_types import UBInt32
-from pyof.v0x04.common.flow_instructions import InstructionType
 from pyof.v0x01.controller2switch.common import StatsType
-from pyof.v0x04.controller2switch.common import MultipartType
 
 
 # pylint: disable=too-many-public-methods, too-many-lines
@@ -300,6 +296,16 @@ class TestMain(TestCase):
         flow_stats.packet_count = 40
         return flow_stats
 
+    def _get_mocked_multipart_replies_flows(self):
+        """Helper method to create mock multipart replies flows"""
+        flow = self._get_mocked_flow_base()
+
+        instruction = MagicMock()
+        flow.instructions = [instruction]
+
+        replies_flows = [flow]
+        return replies_flows
+
     def _get_mocked_flow_base(self):
         """Helper method to create a mock flow object."""
         flow = MagicMock()
@@ -374,43 +380,44 @@ class TestMain(TestCase):
 
         mock_handle_stats.assert_not_called()
 
-    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply")
-    def test_handle_stats_reply_0x04(self, mock_handle_stats):
-        """Test handle stats reply."""
-        flow_msg = MagicMock()
-        flow_msg.body = "A"
-        flow_msg.multipart_type = MultipartType.OFPMP_FLOW
+    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply_received")
+    def test_handle_stats_received(self, mock_handle_stats):
+        """Test handle_stats_received function."""
 
         switch_v0x04 = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        replies_flows = self._get_mocked_multipart_replies_flows()
+        name = "kytos/of_core.flow_stats.received"
+        content = {"switch": switch_v0x04, "replies_flows": replies_flows}
 
-        name = "kytos/of_core.v0x04.messages.in.ofpt_multipart_reply"
-        content = {"source": switch_v0x04.connection, "message": flow_msg}
         event = get_kytos_event_mock(name=name, content=content)
-        event.content["message"] = flow_msg
 
-        self.napp.handle_stats_reply_0x04(event)
-
+        self.napp.handle_stats_received(event)
         mock_handle_stats.assert_called_once()
 
-    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply")
-    def test_handle_stats_reply_0x04_fail(self, mock_handle_stats):
-        """Test handle stats reply."""
-        flow_msg = MagicMock()
-        flow_msg.body = "A"
-
-        flow_msg.multipart_type = MultipartType.OFPMP_PORT_DESC
+    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply_received")
+    def test_handle_stats_received_fail(self, mock_handle_stats):
+        """Test handle_stats_received function for
+        fail when replies_flows is not in content."""
 
         switch_v0x04 = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
-
-        name = "kytos/of_core.v0x04.messages.in.ofpt_multipart_reply"
-        content = {"source": switch_v0x04.connection, "message": flow_msg}
+        name = "kytos/of_core.flow_stats.received"
+        content = {"switch": switch_v0x04}
 
         event = get_kytos_event_mock(name=name, content=content)
-        event.content["message"] = flow_msg
 
-        self.napp.handle_stats_reply_0x04(event)
-
+        self.napp.handle_stats_received(event)
         mock_handle_stats.assert_not_called()
+
+    @patch("napps.amlight.flow_stats.main.GenericFlow.from_replies_flows")
+    def test_handle_stats_reply_received(self, mock_from_flow):
+        """Test handle_stats_reply_received call."""
+        mock_from_flow.return_value = self._get_mocked_flow_base()
+
+        event_switch = MagicMock()
+        flows_mock = self._get_mocked_multipart_replies_flows()
+        self.napp.handle_stats_reply_received(event_switch, flows_mock)
+
+        self.assertEqual(event_switch.generic_flows[0].id, 456)
 
 
 # pylint: disable=too-many-public-methods, too-many-lines
@@ -456,42 +463,40 @@ class TestGenericFlow(TestCase):
         self.assertEqual(result.match["tcp_src"], exp_match.tp_src.value)
         self.assertEqual(result.match["tcp_dst"], exp_match.tp_dst.value)
 
-    def test_from_flow_stats__x04_match(self):
-        """Test from_flow_stats method 0x04 version with match."""
-        flow_stats = MagicMock()
-        flow_stats.actions = [
-            Action10.from_dict(
-                {
-                    "action_type": "output",
-                    "port": UBInt32(1),
-                }
-            ).as_of_action(),
-        ]
-
-        flow_stats.match.oxm_match_fields = [MatchDLVLAN(42).as_of_tlv()]
-
-        result = GenericFlow.from_flow_stats(flow_stats, version="0x04")
-
-        match_expect = MatchFieldFactory.from_of_tlv(
-            flow_stats.match.oxm_match_fields[0]
-        )
-        self.assertEqual(result.match["vlan_vid"], match_expect)
-
-    def test_from_flow_stats__x04_action(self):
-        """Test from_flow_stats method 0x04 version with action."""
-        flow_stats = MagicMock()
+    def test_from_replies_flows(self):
+        """Test from_replies_flows method 0x04 version."""
+        replies_flow = MagicMock()
 
         action_dict = {
             "action_type": "output",
             "port": UBInt32(1),
         }
-        instruction = MagicMock()
-        instruction.instruction_type = InstructionType.OFPIT_APPLY_ACTIONS
-        instruction.actions = [Action40.from_dict(action_dict).as_of_action()]
-        flow_stats.instructions = [instruction]
 
-        result = GenericFlow.from_flow_stats(flow_stats, version="0x04")
-        self.assertEqual(result.actions[0].as_dict(), action_dict)
+        actions = Action40.from_dict(action_dict).as_of_action()
+
+        instruction = MagicMock()
+        instruction.instruction_type = 'apply_actions'
+        instruction.actions = [actions]
+        replies_flow.instructions = [instruction]
+        match = Match40(42)
+        replies_flow.match = match
+        result = GenericFlow.from_replies_flows(replies_flow)
+
+        self.assertEqual(result.idle_timeout, replies_flow.idle_timeout)
+        self.assertEqual(result.hard_timeout, replies_flow.hard_timeout)
+        self.assertEqual(result.priority, replies_flow.priority)
+        self.assertEqual(result.table_id, replies_flow.table_id)
+        self.assertEqual(result.cookie, replies_flow.cookie)
+        self.assertEqual(result.duration_sec, replies_flow.stats.duration_sec)
+        self.assertEqual(result.packet_count, replies_flow.stats.packet_count)
+        self.assertEqual(result.byte_count, replies_flow.stats.byte_count)
+
+        # pylint: disable=too-many-public-methods, too-many-lines
+        match_expect = MatchFieldFactory.from_of_tlv(
+            match.as_of_match().oxm_match_fields[0]
+            )
+        self.assertEqual(result.actions[0], actions)
+        self.assertEqual(result.match["in_port"], match_expect)
 
     def test_to_dict__x01(self):
         """Test to_dict method 0x01 version."""
