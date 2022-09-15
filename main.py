@@ -20,7 +20,6 @@ from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action13
 from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
 from pyof.v0x01.common.flow_match import FlowWildCards
-from pyof.v0x04.common.flow_instructions import InstructionType
 
 
 class GenericFlow():
@@ -193,7 +192,7 @@ class GenericFlow():
             flow.match[field_name] = match_field
         flow.actions = []
         for instruction in flow04.instructions:
-            if instruction.instruction_type == 'apply_actions': 
+            if instruction.instruction_type == 'apply_actions':
                 for of_action in instruction.actions:
                     flow.actions.append(of_action)
         return flow
