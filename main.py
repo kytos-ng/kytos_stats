@@ -163,8 +163,7 @@ class GenericFlow():
                 flow.match[field_name] = match_field
             flow.actions = []
             for instruction in flow_stats.instructions:
-                if instruction.instruction_type == \
-                        InstructionType.OFPIT_APPLY_ACTIONS:
+                if instruction.instruction_type == 'apply_actions':
                     for of_action in instruction.actions:
                         action = Action13.from_of_action(of_action)
                         flow.actions.append(action)
@@ -180,6 +179,7 @@ class GenericFlow():
         flow.hard_timeout = flow04.hard_timeout
         flow.priority = flow04.priority
         flow.table_id = flow04.table_id
+        flow.cookie = flow04.cookie
         flow.duration_sec = flow04.stats.duration_sec
         flow.packet_count = flow04.stats.packet_count
         flow.byte_count = flow04.stats.byte_count
@@ -193,11 +193,9 @@ class GenericFlow():
             flow.match[field_name] = match_field
         flow.actions = []
         for instruction in flow04.instructions:
-            if instruction.instruction_type == \
-                    InstructionType.OFPIT_APPLY_ACTIONS:
+            if instruction.instruction_type == 'apply_actions': 
                 for of_action in instruction.actions:
-                    action = Action13.from_of_action(of_action)
-                    flow.actions.append(action)
+                    flow.actions.append(of_action)
         return flow
 
     def do_match(self, args):
