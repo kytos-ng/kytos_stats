@@ -11,7 +11,6 @@ import json
 from threading import Lock
 
 import pyof.v0x01.controller2switch.common as common01
-import pyof.v0x04.controller2switch.common as common04
 from flask import jsonify, request
 from kytos.core import KytosEvent, KytosNApp, log, rest
 from kytos.core.helpers import listen_to
@@ -21,7 +20,6 @@ from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action13
 from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
 from pyof.v0x01.common.flow_match import FlowWildCards
-from pyof.v0x04.common.flow_instructions import InstructionType
 
 
 class GenericFlow():
@@ -164,11 +162,39 @@ class GenericFlow():
                 flow.match[field_name] = match_field
             flow.actions = []
             for instruction in flow_stats.instructions:
-                if instruction.instruction_type == \
-                        InstructionType.OFPIT_APPLY_ACTIONS:
+                if instruction.instruction_type == 'apply_actions':
                     for of_action in instruction.actions:
                         action = Action13.from_of_action(of_action)
                         flow.actions.append(action)
+        return flow
+
+    @classmethod
+    def from_replies_flows(cls, flow04):
+        """Create a flow from a flow passed on
+        replies_flows in event kytos/of_core.flow_stats.received."""
+
+        flow = GenericFlow(version='0x04')
+        flow.idle_timeout = flow04.idle_timeout
+        flow.hard_timeout = flow04.hard_timeout
+        flow.priority = flow04.priority
+        flow.table_id = flow04.table_id
+        flow.cookie = flow04.cookie
+        flow.duration_sec = flow04.stats.duration_sec
+        flow.packet_count = flow04.stats.packet_count
+        flow.byte_count = flow04.stats.byte_count
+
+        as_of_match = flow04.match.as_of_match()
+        for match in as_of_match.oxm_match_fields:
+            match_field = MatchFieldFactory.from_of_tlv(match)
+            field_name = match_field.name
+            if field_name == 'dl_vlan':
+                field_name = 'vlan_vid'
+            flow.match[field_name] = match_field
+        flow.actions = []
+        for instruction in flow04.instructions:
+            if instruction.instruction_type == 'apply_actions':
+                for of_action in instruction.actions:
+                    flow.actions.append(of_action)
         return flow
 
     def do_match(self, args):
@@ -281,6 +307,7 @@ class GenericFlow():
         return self
 
 
+# pylint: disable=too-many-public-methods
 class Main(KytosNApp):
     """Main class of amlight/flow_stats NApp.
 
@@ -523,18 +550,6 @@ class Main(KytosNApp):
             switch = event.source.switch
             self.handle_stats_reply(msg, switch)
 
-    @listen_to('kytos/of_core.v0x04.messages.in.ofpt_multipart_reply')
-    def on_stats_reply_0x04(self, event):
-        """Capture flow stats messages for OpenFlow 1.3."""
-        self.handle_stats_reply_0x04(event)
-
-    def handle_stats_reply_0x04(self, event):
-        """Handle flow stats messages for OpenFlow 1.3."""
-        msg = event.content['message']
-        if msg.multipart_type == common04.MultipartType.OFPMP_FLOW:
-            switch = event.source.switch
-            self.handle_stats_reply(msg, switch)
-
     def handle_stats_reply(self, msg, switch):
         """Insert flows received in the switch list of flows."""
         try:
@@ -565,3 +580,25 @@ class Main(KytosNApp):
             event = KytosEvent('amlight/flow_stats.flows_updated')
             event.content['switch'] = switch.dpid
             self.controller.buffers.app.put(event)
+
+    @listen_to('kytos/of_core.flow_stats.received')
+    def on_stats_received(self, event):
+        """Capture flow stats messages for OpenFlow 1.3."""
+        self.handle_stats_received(event)
+
+    def handle_stats_received(self, event):
+        """Handle flow stats messages for OpenFlow 1.3."""
+        switch = event.content['switch']
+        if 'replies_flows' in event.content:
+            replies_flows = event.content['replies_flows']
+            self.handle_stats_reply_received(switch, replies_flows)
+
+    # pylint: disable=no-self-use
+    def handle_stats_reply_received(self, switch, replies_flows):
+        """Iterate on the replies and set the generic flows"""
+        switch.generic_flows = [GenericFlow.from_replies_flows(flow)
+                                for flow in replies_flows]
+        switch.generic_flows.sort(
+                    key=lambda f: (f.priority, f.duration_sec),
+                    reverse=True
+                    )
