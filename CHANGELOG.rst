@@ -8,6 +8,9 @@ All notable changes to the flow_stats NApp will be documented in this file.
 Added
 =====
 
+- Added `from_replies_flows`` function to map a the replies_flows into generic flows.
+- Event ``kytos/of_core.flow_stats.received`` has replaced event ``kytos/of_core.v0x04.messages.in.ofpt_multipart_reply``.
+
 Changed
 =======
 
