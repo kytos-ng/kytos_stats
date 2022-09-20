@@ -593,7 +593,6 @@ class Main(KytosNApp):
             replies_flows = event.content['replies_flows']
             self.handle_stats_reply_received(switch, replies_flows)
 
-    # pylint: disable=no-self-use
     def handle_stats_reply_received(self, switch, replies_flows):
         """Iterate on the replies and set the generic flows"""
         switch.generic_flows = [GenericFlow.from_replies_flows(flow)

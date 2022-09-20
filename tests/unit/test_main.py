@@ -286,7 +286,6 @@ class TestMain(TestCase):
 
         return response
 
-    # pylint: disable=no-self-use
     def _get_mocked_flow_stats(self):
         """Helper method to create a mock flow_stats object."""
         flow_stats = MagicMock()
