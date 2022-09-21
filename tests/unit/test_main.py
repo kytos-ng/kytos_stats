@@ -9,12 +9,10 @@ from kytos.lib.helpers import (
     get_switch_mock,
 )
 from napps.amlight.flow_stats.main import GenericFlow, Main
-from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action40
 from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
 from napps.kytos.of_core.v0x04.flow import Match as Match40
 from pyof.foundation.basic_types import UBInt32
-from pyof.v0x01.controller2switch.common import StatsType
 
 
 # pylint: disable=too-many-public-methods, too-many-lines
@@ -199,7 +197,7 @@ class TestMain(TestCase):
         """Test flow_match rest call."""
         flow = GenericFlow()
         flow.actions = [
-            Action10.from_dict(
+            Action40.from_dict(
                 {
                     "action_type": "output",
                     "port": "1",
@@ -241,7 +239,7 @@ class TestMain(TestCase):
         """Test flow_match rest call."""
         flow = GenericFlow()
         flow.actions = [
-            Action10.from_dict(
+            Action40.from_dict(
                 {
                     "action_type": "output",
                     "port": "1",
@@ -347,39 +345,6 @@ class TestMain(TestCase):
         # Check mocked flow id
         self.assertEqual(event_switch.generic_flows[0].id, 456)
 
-    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply")
-    def test_handle_stats_reply_0x01(self, mock_handle_stats):
-        """Test handle stats reply."""
-        flow_msg = MagicMock()
-        flow_msg.body = "A"
-        flow_msg.body_type = StatsType.OFPST_FLOW
-
-        switch_v0x01 = get_switch_mock("00:00:00:00:00:00:00:01", 0x01)
-
-        name = "kytos/of_core.v0x01.messages.in.ofpt_stats_reply"
-        content = {"source": switch_v0x01.connection, "message": flow_msg}
-        event = get_kytos_event_mock(name=name, content=content)
-
-        self.napp.handle_stats_reply_0x01(event)
-        mock_handle_stats.assert_called_once()
-
-    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply")
-    def test_handle_stats_reply_0x01__fail(self, mock_handle_stats):
-        """Test handle stats reply."""
-        flow_msg = MagicMock()
-        flow_msg.body = "A"
-        flow_msg.body_type = StatsType.OFPST_DESC
-
-        switch_v0x01 = get_switch_mock("00:00:00:00:00:00:00:01", 0x01)
-
-        name = "kytos/of_core.v0x01.messages.in.ofpt_stats_reply"
-        content = {"source": switch_v0x01.connection, "message": flow_msg}
-        event = get_kytos_event_mock(name=name, content=content)
-
-        self.napp.handle_stats_reply_0x01(event)
-
-        mock_handle_stats.assert_not_called()
-
     @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply_received")
     def test_handle_stats_received(self, mock_handle_stats):
         """Test handle_stats_received function."""
@@ -425,12 +390,12 @@ class TestGenericFlow(TestCase):
     """Test the GenericFlow class."""
 
     # pylint: disable=no-member
-    def test_from_flow_stats__x01(self):
-        """Test from_flow_stats method 0x01 version."""
+    def test_from_flow_stats__x04(self):
+        """Test from_flow_stats method 0x04 version."""
         flow_stats = MagicMock()
 
         flow_stats.actions = [
-            Action10.from_dict(
+            Action40.from_dict(
                 {
                     "action_type": "output",
                     "port": UBInt32(1),
@@ -438,7 +403,7 @@ class TestGenericFlow(TestCase):
             ).as_of_action(),
         ]
 
-        result = GenericFlow.from_flow_stats(flow_stats, version="0x01")
+        result = GenericFlow.from_flow_stats(flow_stats)
 
         self.assertEqual(result.idle_timeout, flow_stats.idle_timeout.value)
         self.assertEqual(result.hard_timeout, flow_stats.hard_timeout.value)
@@ -447,21 +412,7 @@ class TestGenericFlow(TestCase):
         self.assertEqual(result.duration_sec, flow_stats.duration_sec.value)
         self.assertEqual(result.packet_count, flow_stats.packet_count.value)
         self.assertEqual(result.byte_count, flow_stats.byte_count.value)
-
-        exp_match = flow_stats.match
-        self.assertEqual(result.match["wildcards"], exp_match.wildcards.value)
-        self.assertEqual(result.match["in_port"], exp_match.in_port.value)
-        self.assertEqual(result.match["eth_src"], exp_match.dl_src.value)
-        self.assertEqual(result.match["eth_dst"], exp_match.dl_dst.value)
-        self.assertEqual(result.match["vlan_vid"], exp_match.dl_vlan.value)
-        self.assertEqual(result.match["vlan_pcp"], exp_match.dl_vlan_pcp.value)
-        self.assertEqual(result.match["eth_type"], exp_match.dl_type.value)
-        self.assertEqual(result.match["ip_tos"], exp_match.nw_tos.value)
-        self.assertEqual(result.match["ipv4_src"], exp_match.nw_src.value)
-        self.assertEqual(result.match["ipv4_dst"], exp_match.nw_dst.value)
-        self.assertEqual(result.match["ip_proto"], exp_match.nw_proto.value)
-        self.assertEqual(result.match["tcp_src"], exp_match.tp_src.value)
-        self.assertEqual(result.match["tcp_dst"], exp_match.tp_dst.value)
+        self.assertEqual(result.version, "0x04")
 
     def test_from_replies_flows(self):
         """Test from_replies_flows method 0x04 version."""
@@ -497,48 +448,6 @@ class TestGenericFlow(TestCase):
             )
         self.assertEqual(result.actions[0], actions)
         self.assertEqual(result.match["in_port"], match_expect)
-
-    def test_to_dict__x01(self):
-        """Test to_dict method 0x01 version."""
-        action = Action10.from_dict(
-            {
-                "action_type": "set_vlan",
-                "vlan_id": 6,
-            }
-        )
-        match = {}
-        match["in_port"] = 11
-
-        generic_flow = GenericFlow(
-            version="0x01",
-            match=match,
-            idle_timeout=1,
-            hard_timeout=2,
-            duration_sec=3,
-            packet_count=4,
-            byte_count=5,
-            priority=6,
-            table_id=7,
-            cookie=8,
-            buffer_id=9,
-            actions=[action],
-        )
-
-        result = generic_flow.to_dict()
-
-        expected = {
-            "version": "0x01",
-            "idle_timeout": 1,
-            "in_port": 11,
-            "hard_timeout": 2,
-            "priority": 6,
-            "table_id": 7,
-            "cookie": 8,
-            "buffer_id": 9,
-            "actions": [{"vlan_id": 6, "action_type": "set_vlan"}],
-        }
-
-        self.assertEqual(result, expected)
 
     def test_to_dict__x04(self):
         """Test to_dict method 0x04 version."""
@@ -588,31 +497,6 @@ class TestGenericFlow(TestCase):
         generic_flow = GenericFlow(version="0x04")
         result = generic_flow.match_to_dict()
         self.assertEqual(result, {})
-
-    def test_id__x01(self):
-        """Test id method 0x01 version."""
-        action = Action10.from_dict(
-            {
-                "action_type": "set_vlan",
-                "vlan_id": 6,
-            }
-        )
-        match = {}
-        match["in_port"] = 11
-
-        generic_flow = GenericFlow(
-            version="0x01",
-            match=match,
-            idle_timeout=1,
-            hard_timeout=2,
-            priority=6,
-            table_id=7,
-            cookie=8,
-            buffer_id=9,
-            actions=[action],
-        )
-
-        self.assertEqual(generic_flow.id, "78d18f2cffd3eaa069afbf0995b90db9")
 
     def test_id__x04(self):
         """Test id method 0x04 version."""

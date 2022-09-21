@@ -38,7 +38,6 @@ Events
 Subscribed
 ----------
 
-- ``kytos/of_core.v0x01.messages.in.ofpt_stats_reply``
 - ``kytos/of_core.v0x04.messages.in.ofpt_multipart_reply``
 
 
