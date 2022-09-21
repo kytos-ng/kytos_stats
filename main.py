@@ -10,16 +10,12 @@ import ipaddress
 import json
 from threading import Lock
 
-import pyof.v0x01.controller2switch.common as common01
 from flask import jsonify, request
 from kytos.core import KytosEvent, KytosNApp, log, rest
 from kytos.core.helpers import listen_to
 from napps.amlight.flow_stats.utils import format_request
-from napps.amlight.sdntrace import constants
-from napps.kytos.of_core.v0x01.flow import Action as Action10
 from napps.kytos.of_core.v0x04.flow import Action as Action13
 from napps.kytos.of_core.v0x04.match_fields import MatchFieldFactory
-from pyof.v0x01.common.flow_match import FlowWildCards
 
 
 class GenericFlow():
@@ -27,7 +23,7 @@ class GenericFlow():
 
         This class represents a flow regardless of the OF version."""
 
-    def __init__(self, version='0x01', match=None, idle_timeout=0,
+    def __init__(self, version='0x04', match=None, idle_timeout=0,
                  hard_timeout=0, duration_sec=0, packet_count=0, byte_count=0,
                  priority=0, table_id=0xff, cookie=None, buffer_id=None,
                  actions=None):
@@ -59,10 +55,7 @@ class GenericFlow():
         hash_result = hashlib.md5()
         hash_result.update(str(self.version).encode('utf-8'))
         for value in self.match.copy().values():
-            if self.version == '0x01':
-                hash_result.update(str(value).encode('utf-8'))
-            else:
-                hash_result.update(str(value.value).encode('utf-8'))
+            hash_result.update(str(value.value).encode('utf-8'))
         hash_result.update(str(self.idle_timeout).encode('utf-8'))
         hash_result.update(str(self.hard_timeout).encode('utf-8'))
         hash_result.update(str(self.priority).encode('utf-8'))
@@ -76,10 +69,7 @@ class GenericFlow():
         """Convert flow to a dictionary."""
         flow_dict = {}
         flow_dict['version'] = self.version
-        if self.version == '0x01':
-            flow_dict.update(self.match)
-        else:
-            flow_dict.update(self.match_to_dict())
+        flow_dict.update(self.match_to_dict())
         flow_dict['idle_timeout'] = self.idle_timeout
         flow_dict['hard_timeout'] = self.hard_timeout
         flow_dict['priority'] = self.priority
@@ -125,7 +115,7 @@ class GenericFlow():
     #     return flow
 
     @classmethod
-    def from_flow_stats(cls, flow_stats, version='0x01'):
+    def from_flow_stats(cls, flow_stats, version='0x04'):
         """Create a flow from OF flow stats."""
         flow = GenericFlow(version=version)
         flow.idle_timeout = flow_stats.idle_timeout.value
@@ -135,25 +125,7 @@ class GenericFlow():
         flow.duration_sec = flow_stats.duration_sec.value
         flow.packet_count = flow_stats.packet_count.value
         flow.byte_count = flow_stats.byte_count.value
-        if version == '0x01':
-            flow.match['wildcards'] = flow_stats.match.wildcards.value
-            flow.match['in_port'] = flow_stats.match.in_port.value
-            flow.match['eth_src'] = flow_stats.match.dl_src.value
-            flow.match['eth_dst'] = flow_stats.match.dl_dst.value
-            flow.match['vlan_vid'] = flow_stats.match.dl_vlan.value
-            flow.match['vlan_pcp'] = flow_stats.match.dl_vlan_pcp.value
-            flow.match['eth_type'] = flow_stats.match.dl_type.value
-            flow.match['ip_tos'] = flow_stats.match.nw_tos.value
-            flow.match['ipv4_src'] = flow_stats.match.nw_src.value
-            flow.match['ipv4_dst'] = flow_stats.match.nw_dst.value
-            flow.match['ip_proto'] = flow_stats.match.nw_proto.value
-            flow.match['tcp_src'] = flow_stats.match.tp_src.value
-            flow.match['tcp_dst'] = flow_stats.match.tp_dst.value
-            flow.actions = []
-            for of_action in flow_stats.actions:
-                action = Action10.from_of_action(of_action)
-                flow.actions.append(action)
-        elif version == '0x04':
+        if version == '0x04':
             for match in flow_stats.match.oxm_match_fields:
                 match_field = MatchFieldFactory.from_of_tlv(match)
                 field_name = match_field.name
@@ -199,92 +171,9 @@ class GenericFlow():
 
     def do_match(self, args):
         """Match a packet against this flow."""
-        if self.version == '0x01':
-            return self.match10(args)
         if self.version == '0x04':
             return self.match13(args)
         return None
-
-    def match10(self, args):
-        """Match a packet against this flow (OF1.0)."""
-        log.debug('Matching packet')
-        if not self.match['wildcards'] & FlowWildCards.OFPFW_IN_PORT:
-            if 'in_port' not in args:
-                return False
-            if self.match['in_port'] != int(args['in_port']):
-                return False
-        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_VLAN_PCP:
-            if 'vlan_pcp' not in args:
-                return False
-            if self.match['vlan_pcp'] != int(args['vlan_pcp']):
-                return False
-        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_VLAN:
-            if 'vlan_vid' not in args:
-                return False
-            if self.match['vlan_vid'] != args['vlan_vid'][-1]:
-                return False
-        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_SRC:
-            if 'eth_src' not in args:
-                return False
-            if self.match['eth_src'] != args['eth_src']:
-                return False
-        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_DST:
-            if 'eth_dst' not in args:
-                return False
-            if self.match['eth_dst'] != args['eth_dst']:
-                return False
-        if not self.match['wildcards'] & FlowWildCards.OFPFW_DL_TYPE:
-            if 'eth_type' not in args:
-                return False
-            if self.match['eth_type'] != int(args['eth_type']):
-                return False
-        if self.match['eth_type'] == constants.IPV4:
-            flow_ip_int = int(ipaddress.IPv4Address(self.match['ipv4_src']))
-            if flow_ip_int != 0:
-                mask = ((self.match['wildcards'] &
-                         FlowWildCards.OFPFW_NW_SRC_MASK) >>
-                        FlowWildCards.OFPFW_NW_SRC_SHIFT)
-                mask = min(mask, 32)
-                if mask != 32 and 'ipv4_src' not in args:
-                    return False
-                mask = (0xffffffff << mask) & 0xffffffff
-                ip_int = int(ipaddress.IPv4Address(args['ipv4_src']))
-                if ip_int & mask != flow_ip_int & mask:
-                    return False
-
-            flow_ip_int = int(ipaddress.IPv4Address(self.match['ipv4_dst']))
-            if flow_ip_int != 0:
-                mask = ((self.match['wildcards'] &
-                         FlowWildCards.OFPFW_NW_DST_MASK) >>
-                        FlowWildCards.OFPFW_NW_DST_SHIFT)
-                mask = min(mask, 32)
-                if mask != 32 and 'ipv4_dst' not in args:
-                    return False
-                mask = (0xffffffff << mask) & 0xffffffff
-                ip_int = int(ipaddress.IPv4Address(args['ipv4_dst']))
-                if ip_int & mask != flow_ip_int & mask:
-                    return False
-            if not self.match['wildcards'] & FlowWildCards.OFPFW_NW_TOS:
-                if 'ip_tos' not in args:
-                    return False
-                if self.match['ip_tos'] != int(args['ip_tos']):
-                    return False
-            if not self.match['wildcards'] & FlowWildCards.OFPFW_NW_PROTO:
-                if 'ip_proto' not in args:
-                    return False
-                if self.match['ip_proto'] != int(args['ip_proto']):
-                    return False
-            if not self.match['wildcards'] & FlowWildCards.OFPFW_TP_SRC:
-                if 'tp_src' not in args:
-                    return False
-                if self.match['tcp_src'] != int(args['tp_src']):
-                    return False
-            if not self.match['wildcards'] & FlowWildCards.OFPFW_TP_DST:
-                if 'tp_dst' not in args:
-                    return False
-                if self.match['tcp_dst'] != int(args['tp_dst']):
-                    return False
-        return self
 
     def match13(self, args):
         """Match a packet against this flow (OF1.3)."""
@@ -415,17 +304,7 @@ class Main(KytosNApp):
         # pylint: disable=too-many-nested-blocks
         if flow:
             actions = flow.actions
-            if switch.ofp_version == '0x01':
-                for action in actions:
-                    action_type = action.action_type
-                    if action_type == 'output':
-                        port = action.port
-                    elif action_type == 'set_vlan':
-                        if 'vlan_vid' in args:
-                            args['vlan_vid'][-1] = action.vlan_id
-                        else:
-                            args['vlan_vid'] = [action.vlan_id]
-            elif switch.ofp_version == '0x04':
+            if switch.ofp_version == '0x04':
                 for action in actions:
                     action_type = action.action_type
                     if action_type == 'output':
@@ -537,18 +416,6 @@ class Main(KytosNApp):
                                     rate: per_second})
 
         return jsonify(count_flows)
-
-    @listen_to('kytos/of_core.v0x01.messages.in.ofpt_stats_reply')
-    def on_stats_reply_0x01(self, event):
-        """Capture flow stats messages for v0x01 switches."""
-        self.handle_stats_reply_0x01(event)
-
-    def handle_stats_reply_0x01(self, event):
-        """Handle stats replies for v0x01 switches."""
-        msg = event.content['message']
-        if msg.body_type == common01.StatsType.OFPST_FLOW:
-            switch = event.source.switch
-            self.handle_stats_reply(msg, switch)
 
     def handle_stats_reply(self, msg, switch):
         """Insert flows received in the switch list of flows."""
