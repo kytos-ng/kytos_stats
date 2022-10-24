@@ -26,8 +26,7 @@ class Main(KytosNApp):
         So, if you have any setup routine, insert it here.
         """
         log.info('Starting Kytos/Amlight flow manager')
-        for switch in self.controller.switches.copy().values():
-            switch.stats_flows = {}
+        self.flows_stats_dict = {}
 
     def execute(self):
         """This method is executed right after the setup method execution.
@@ -43,22 +42,14 @@ class Main(KytosNApp):
 
     def flow_from_id(self, flow_id):
         """Flow from given flow_id."""
-        for switch in self.controller.switches.copy().values():
-            try:
-                for flow in switch.flows:
-                    if flow.id == flow_id:
-                        return flow
-            except KeyError:
-                pass
+        if flow_id in self.flows_stats_dict:
+            return self.flows_stats_dict[flow_id]
         return None
 
     @rest('flow/stats/<dpid>')
     def flow_stats(self, dpid):
         """Return all flows and stats."""
-        switch = self.controller.get_switch_by_dpid(dpid)
-        if not switch:
-            return f"switch {dpid} not found", 404
-        flows = [flow.as_dict() for flow in switch.stats_flows.values()]
+        flows = [flow.as_dict() for flow in self.flows_stats_dict]
         return jsonify(flows)
 
     @rest('packet_count/<flow_id>')
@@ -69,8 +60,8 @@ class Main(KytosNApp):
             return "Flow does not exist", 404
         packet_stats = {
             'flow_id': flow_id,
-            'packet_counter': flow.packet_count,
-            'packet_per_second': flow.packet_count / flow.duration_sec
+            'packet_counter': flow.stats.packet_count,
+            'packet_per_second': flow.stats.packet_count / flow.stats.duration_sec
             }
         return jsonify(packet_stats)
 
@@ -82,8 +73,8 @@ class Main(KytosNApp):
             return "Flow does not exist", 404
         bytes_stats = {
             'flow_id': flow_id,
-            'bytes_counter': flow.byte_count,
-            'bits_per_second': flow.byte_count * 8 / flow.duration_sec
+            'bytes_counter': flow.stats.byte_count,
+            'bits_per_second': flow.stats.byte_count * 8 / flow.stats.duration_sec
             }
         return jsonify(bytes_stats)
 
@@ -139,14 +130,16 @@ class Main(KytosNApp):
 
         # We don't have statistics persistence yet, so for now this only works
         # for start and end equals to zero
-        flows = self.controller.get_switch_by_dpid(dpid).stats_flows.values()
+        flows = self.flows_stats_dict
+        #flows = self.controller.get_switch_by_dpid(dpid).stats_flows.values()
 
         for flow in flows:
-            count = getattr(flow, field)
+            flow_dict = flow.as_dict()
+            count = flow_dict['stats'][field]
             if total:
                 count_flows += count
             else:
-                per_second = count / flow.duration_sec
+                per_second = count / ['stats']['duration_sec']
                 if rate.startswith('bits'):
                     per_second *= 8
                 count_flows.append({'flow_id': flow.id,
@@ -165,9 +158,6 @@ class Main(KytosNApp):
         switch = event.content['switch']
         if 'replies_flows' in event.content:
             replies_flows = event.content['replies_flows']
-            self.handle_stats_reply_received(switch, replies_flows)
-
-    def handle_stats_reply_received(self, switch, replies_flows):
-        """Iterate on the replies and set the generic flows"""
-        switch.stats_flows = {flow.id:flow for flow in replies_flows}
-        #switch.stats_flows.sort(key=lambda f: (f.priority, f.duration_sec),reverse=True)
+            """Iterate on the replies and set the generic flows"""
+            #self.flows_stats_dict.update({flow.id:flow for flow in replies_flows})
+            self.flows_stats_dict = {flow.id:flow for flow in replies_flows}

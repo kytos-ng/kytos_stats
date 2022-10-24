@@ -4,39 +4,6 @@ info:
   version: v1
   description: Flow structures and statistics
 paths:
-  /api/amlight/flow_stats/flow/match/{dpid}:
-    get:
-      summary: Return first flow matching request.
-      description: Match the flows in switch with args in request, returning the first match
-      parameters:  
-        - name: dpid
-          schema:
-            type: string
-          required: true
-          description: Datapath ID of the switch
-          in: path
-        - name: in_port
-          schema:
-            type: string
-          required: true
-          description: Incoming port
-          in: query
-      responses:
-        200:
-          description: Describe a successful call.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  prop_one:
-                    type: string
-                    description: Meaning of prop_one
-                    example: an example of prop_one
-                  second_prop:
-                    type: integer
-                    description: Meaning of second_prop
-                    example: 42
   /api/amlight/flow_stats/flow/stats/{dpid}:
     get:
       summary: Return all flows matching request.
