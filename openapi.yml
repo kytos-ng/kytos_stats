@@ -4,33 +4,55 @@ info:
   version: v1
   description: Flow structures and statistics
 paths:
-  /api/amlight/flow_stats/flow/stats/{dpid}:
+  /api/amlight/flow_stats/flow/stats:
     get:
-      summary: Return all flows matching request.
-      description: Match the flows in switch with args in request, returning all of them
+      tags:
+        - object
+      summary: Return flow stats.
+      description: Return the stats of flows given a list of dpids or the stats of all flows if no dpid.
       parameters:  
         - name: dpid
           schema:
-            type: string
-          required: true
-          description: Datapath ID of the switch
-          in: path
+            type: array
+            items:
+              type: string
+          description: List of switch ids
+          required: false
+          in: query
+          example: ["00:00:00:00:00:00:00:01","00:00:00:00:00:00:00:02"]  
       responses:
-        200:  # You can add more responses
+        200:  
           description: Describe a successful call.
           content:
-            application/json:  # You can also use text/plain, for example
+            application/json:  
               schema:
-                type: object  # Adapt to your response
+                type: object
                 properties:
-                  prop_one:
-                    type: string
-                    description: Meaning of prop_one
-                    example: an example of prop_one
-                  second_prop:
-                    type: integer
-                    description: Meaning of second_prop
-                    example: 42
+                  switch: 
+                    type: object
+                    properties:
+                      flow_id:
+                        type: string
+                        example: '2e8155af1a85644a166b28deb5af1f79'
+                      value:
+                        type: object
+                        properties:
+                          byte_count:
+                            type: integer
+                            format: int16
+                            example: 148
+                          duration_sec:
+                            type: integer
+                            format: int16
+                            example: 1589
+                          duration_nsec:
+                            type: integer
+                            format: int64
+                            example: 556000000
+                          packet_count:
+                            type: integer
+                            format: int64
+                            example: 2
   /api/amlight/flow_stats/packet_count/{flow_id}:
     get:
       summary: Packet count of an specific flow.

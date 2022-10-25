@@ -5,13 +5,10 @@ This NApp does operations with flows not covered by Kytos itself.
 # pylint: disable=too-many-return-statements,too-many-instance-attributes
 # pylint: disable=too-many-arguments,too-many-branches,too-many-statements
 
-import hashlib
-import ipaddress
-import json
-from threading import Lock
 from flask import jsonify, request
-from kytos.core import KytosEvent, KytosNApp, log, rest
+from kytos.core import KytosNApp, log, rest
 from kytos.core.helpers import listen_to
+
 
 # pylint: disable=too-many-public-methods
 class Main(KytosNApp):
@@ -46,11 +43,29 @@ class Main(KytosNApp):
             return self.flows_stats_dict[flow_id]
         return None
 
-    @rest('flow/stats/<dpid>')
-    def flow_stats(self, dpid):
-        """Return all flows and stats."""
-        flows = [flow.as_dict() for flow in self.flows_stats_dict]
-        return jsonify(flows)
+    def _flow_stats(self, dpids):
+        """ Auxiliar funcion for flow/stats endpoint implementation.
+        """
+        flow_stats_by_id = {}
+        for flow_id, flow in self.flows_stats_dict.items():
+            dpid = flow.switch.dpid
+            if dpid in dpids:
+                if dpid not in flow_stats_by_id:
+                    flow_stats_by_id[dpid] = {}
+                flow_stats_by_id[dpid].update({flow_id: flow.stats.as_dict()})
+        return flow_stats_by_id
+
+    @rest('flow/stats')
+    def flow_stats(self):
+        """Return the flows stats by dpid.
+        Return the stats of all flows if dpid is None
+        """
+        args = request.args
+        dpids = args.getlist("dpid", type=str)
+        if len(dpids) == 0:
+            dpids = [sw.dpid for sw in self.controller.switches.values()]
+        flow_stats_by_id = self._flow_stats(dpids)
+        return jsonify(flow_stats_by_id)
 
     @rest('packet_count/<flow_id>')
     def packet_count(self, flow_id):
@@ -61,7 +76,8 @@ class Main(KytosNApp):
         packet_stats = {
             'flow_id': flow_id,
             'packet_counter': flow.stats.packet_count,
-            'packet_per_second': flow.stats.packet_count / flow.stats.duration_sec
+            'packet_per_second':
+                flow.stats.packet_count / flow.stats.duration_sec
             }
         return jsonify(packet_stats)
 
@@ -74,7 +90,8 @@ class Main(KytosNApp):
         bytes_stats = {
             'flow_id': flow_id,
             'bytes_counter': flow.stats.byte_count,
-            'bits_per_second': flow.stats.byte_count * 8 / flow.stats.duration_sec
+            'bits_per_second':
+                flow.stats.byte_count * 8 / flow.stats.duration_sec
             }
         return jsonify(bytes_stats)
 
@@ -130,19 +147,18 @@ class Main(KytosNApp):
 
         # We don't have statistics persistence yet, so for now this only works
         # for start and end equals to zero
-        flows = self.flows_stats_dict
-        #flows = self.controller.get_switch_by_dpid(dpid).stats_flows.values()
+        flows = self._flow_stats([dpid])
+        flows = flows[dpid]
 
-        for flow in flows:
-            flow_dict = flow.as_dict()
-            count = flow_dict['stats'][field]
+        for flow_id, stats in flows.items():
+            count = stats[field]
             if total:
                 count_flows += count
             else:
-                per_second = count / ['stats']['duration_sec']
+                per_second = count / stats['duration_sec']
                 if rate.startswith('bits'):
                     per_second *= 8
-                count_flows.append({'flow_id': flow.id,
+                count_flows.append({'flow_id': flow_id,
                                     counter: count,
                                     rate: per_second})
 
@@ -155,9 +171,11 @@ class Main(KytosNApp):
 
     def handle_stats_received(self, event):
         """Handle flow stats messages for OpenFlow 1.3."""
-        switch = event.content['switch']
         if 'replies_flows' in event.content:
             replies_flows = event.content['replies_flows']
-            """Iterate on the replies and set the generic flows"""
-            #self.flows_stats_dict.update({flow.id:flow for flow in replies_flows})
-            self.flows_stats_dict = {flow.id:flow for flow in replies_flows}
+            self.handle_stats_reply_received(replies_flows)
+
+    def handle_stats_reply_received(self, replies_flows):
+        """Update the set of flows stats"""
+        self.flows_stats_dict.update({flow.id: flow for flow in replies_flows})
+        # self.flows_stats_dict = {flow.id:flow for flow in replies_flows}

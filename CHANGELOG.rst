@@ -14,12 +14,18 @@ Added
 Changed
 =======
 
+- Update GET ``flow/stats`` endpoint to listing flow stats by dpid.
+
 Deprecated
 ==========
 
 Removed
 =======
 - Removed support for OpenFlow 1.0
+
+- `GenericFlow` abstraction
+
+- GET ``flow/match/<dpid>`` endpoint
 
 Fixed
 =====
