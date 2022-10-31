@@ -4,7 +4,7 @@ info:
   version: v1
   description: Flow structures and statistics
 paths:
-  /api/amlight/flow_stats/flow/stats:
+  /api/amlight/flow_stats/v1/flow/stats:
     get:
       tags:
         - object

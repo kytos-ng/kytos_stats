@@ -55,7 +55,7 @@ class TestMain(TestCase):
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/flow/stats/",
+                "/api/amlight/flow_stats/v1/flow/stats/",
             ),
             (
                 {"flow_id": "[flow_id]"},
@@ -139,7 +139,7 @@ class TestMain(TestCase):
         assert json_response["bytes_counter"] == 10
         assert json_response["bits_per_second"] == 4.0
 
-    @patch("napps.amlight.flow_stats.main.Main._flow_stats")
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_packet_count_per_flow(self, mock_from_flow):
         """Test packet_count_per_flow rest call."""
         flow_stats = {
@@ -164,7 +164,7 @@ class TestMain(TestCase):
         assert json_response[0]["packet_counter"] == 40
         assert json_response[0]["packet_per_second"] == 2.0
 
-    @patch("napps.amlight.flow_stats.main.Main._flow_stats")
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_packet_count_sum(self, mock_from_flow):
         """Test packet_count_sum rest call."""
         flow_stats = {
@@ -187,7 +187,7 @@ class TestMain(TestCase):
         json_response = json.loads(response.data)
         assert json_response == 40
 
-    @patch("napps.amlight.flow_stats.main.Main._flow_stats")
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_bytes_count_sum(self, mock_from_flow):
         """Test bytes_count_sum rest call."""
         flow_stats = {
@@ -210,7 +210,7 @@ class TestMain(TestCase):
         json_response = json.loads(response.data)
         assert json_response == 10
 
-    @patch("napps.amlight.flow_stats.main.Main._flow_stats")
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_bytes_count_per_flow(self, mock_from_flow):
         """Test bytes_count_per_flow rest call."""
         flow_stats = {
@@ -235,8 +235,8 @@ class TestMain(TestCase):
         assert json_response[0]["bytes_counter"] == 10
         assert json_response[0]["bits_per_second"] == 4.0
 
-    @patch("napps.amlight.flow_stats.main.Main._flow_stats")
-    def test_flow_stats(self, mock_from_flow):
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    def test_flow_stats_by_dpid_flow_id(self, mock_from_flow):
         """Test flow_stats rest call."""
         flow_stats = {
             'byte_count': 148,
@@ -249,15 +249,16 @@ class TestMain(TestCase):
         mock_from_flow.return_value = flow_by_sw
 
         api = get_test_client(self.napp.controller, self.napp)
-        url = f"{self.server_name_url}/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        endpoint = "/v1/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        url = f"{self.server_name_url}"+endpoint
 
         response = api.get(url)
         expected = flow_by_sw
         assert response.json == expected
         assert response.status_code == 200
 
-    @patch("napps.amlight.flow_stats.main.Main._flow_stats")
-    def test_flow_stats_with_dpid(self, mock_from_flow):
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    def test_flow_stats_by_dpid_flow_id_with_dpid(self, mock_from_flow):
         """Test flow_stats rest call."""
         flow_stats = {
             'byte_count': 148,
@@ -270,7 +271,8 @@ class TestMain(TestCase):
         mock_from_flow.return_value = flow_by_sw
 
         api = get_test_client(self.napp.controller, self.napp)
-        url = f"{self.server_name_url}/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        endpoint = "/v1/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        url = f"{self.server_name_url}"+endpoint
 
         response = api.get(url)
         expected = flow_by_sw

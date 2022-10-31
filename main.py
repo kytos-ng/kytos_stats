@@ -39,15 +39,14 @@ class Main(KytosNApp):
 
     def flow_from_id(self, flow_id):
         """Flow from given flow_id."""
-        if flow_id in self.flows_stats_dict:
-            return self.flows_stats_dict[flow_id]
-        return None
+        return self.flows_stats_dict.get(flow_id)
 
-    def _flow_stats(self, dpids):
-        """ Auxiliar funcion for flow/stats endpoint implementation.
+    def flow_stats_by_dpid_flow_id(self, dpids):
+        """ Auxiliar funcion for v1/flow/stats endpoint implementation.
         """
         flow_stats_by_id = {}
-        for flow_id, flow in self.flows_stats_dict.items():
+        flows_stats_dict_copy = self.flows_stats_dict.copy()
+        for flow_id, flow in flows_stats_dict_copy.items():
             dpid = flow.switch.dpid
             if dpid in dpids:
                 if dpid not in flow_stats_by_id:
@@ -55,7 +54,7 @@ class Main(KytosNApp):
                 flow_stats_by_id[dpid].update({flow_id: flow.stats.as_dict()})
         return flow_stats_by_id
 
-    @rest('flow/stats')
+    @rest('v1/flow/stats')
     def flow_stats(self):
         """Return the flows stats by dpid.
         Return the stats of all flows if dpid is None
@@ -64,7 +63,7 @@ class Main(KytosNApp):
         dpids = args.getlist("dpid", type=str)
         if len(dpids) == 0:
             dpids = [sw.dpid for sw in self.controller.switches.values()]
-        flow_stats_by_id = self._flow_stats(dpids)
+        flow_stats_by_id = self.flow_stats_by_dpid_flow_id(dpids)
         return jsonify(flow_stats_by_id)
 
     @rest('packet_count/<flow_id>')
@@ -147,7 +146,7 @@ class Main(KytosNApp):
 
         # We don't have statistics persistence yet, so for now this only works
         # for start and end equals to zero
-        flows = self._flow_stats([dpid])
+        flows = self.flow_stats_by_dpid_flow_id([dpid])
         flows = flows[dpid]
 
         for flow_id, stats in flows.items():
@@ -178,4 +177,3 @@ class Main(KytosNApp):
     def handle_stats_reply_received(self, replies_flows):
         """Update the set of flows stats"""
         self.flows_stats_dict.update({flow.id: flow for flow in replies_flows})
-        # self.flows_stats_dict = {flow.id:flow for flow in replies_flows}
