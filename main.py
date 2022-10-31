@@ -66,7 +66,7 @@ class Main(KytosNApp):
         flow_stats_by_id = self.flow_stats_by_dpid_flow_id(dpids)
         return jsonify(flow_stats_by_id)
 
-    @rest('packet_count/<flow_id>')
+    @rest('v1/packet_count/<flow_id>')
     def packet_count(self, flow_id):
         """Packet count of an specific flow."""
         flow = self.flow_from_id(flow_id)
@@ -80,7 +80,7 @@ class Main(KytosNApp):
             }
         return jsonify(packet_stats)
 
-    @rest('bytes_count/<flow_id>')
+    @rest('v1/bytes_count/<flow_id>')
     def bytes_count(self, flow_id):
         """Bytes count of an specific flow."""
         flow = self.flow_from_id(flow_id)
@@ -94,7 +94,7 @@ class Main(KytosNApp):
             }
         return jsonify(bytes_stats)
 
-    @rest('packet_count/per_flow/<dpid>')
+    @rest('v1/packet_count/per_flow/<dpid>')
     def packet_count_per_flow(self, dpid):
         """Per flow packet count."""
         return self.flows_counters('packet_count',
@@ -102,27 +102,13 @@ class Main(KytosNApp):
                                    counter='packet_counter',
                                    rate='packet_per_second')
 
-    @rest('packet_count/sum/<dpid>')
-    def packet_count_sum(self, dpid):
-        """Sum of packet count flow stats."""
-        return self.flows_counters('packet_count',
-                                   dpid,
-                                   total=True)
-
-    @rest('bytes_count/per_flow/<dpid>')
+    @rest('v1/bytes_count/per_flow/<dpid>')
     def bytes_count_per_flow(self, dpid):
         """Per flow bytes count."""
         return self.flows_counters('byte_count',
                                    dpid,
                                    counter='bytes_counter',
                                    rate='bits_per_second')
-
-    @rest('bytes_count/sum/<dpid>')
-    def bytes_count_sum(self, dpid):
-        """Sum of bytes count flow stats."""
-        return self.flows_counters('byte_count',
-                                   dpid,
-                                   total=True)
 
     def flows_counters(self, field, dpid, counter=None, rate=None,
                        total=False):

@@ -20,7 +20,8 @@ class TestMain(TestCase):
 
         Set the server_name_url_url from amlight/flow_stats
         """
-        self.server_name_url = "http://localhost:8181/api/amlight/flow_stats"
+        self.server_name_url = \
+            "http://localhost:8181/api/amlight/flow_stats/v1"
         self.napp = Main(get_controller_mock())
 
     @staticmethod
@@ -60,32 +61,22 @@ class TestMain(TestCase):
             (
                 {"flow_id": "[flow_id]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/packet_count/",
+                "/api/amlight/flow_stats/v1/packet_count/",
             ),
             (
                 {"flow_id": "[flow_id]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/bytes_count/",
+                "/api/amlight/flow_stats/v1/bytes_count/",
             ),
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/packet_count/per_flow/",
+                "/api/amlight/flow_stats/v1/packet_count/per_flow/",
             ),
             (
                 {"dpid": "[dpid]"},
                 {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/packet_count/sum/",
-            ),
-            (
-                {"dpid": "[dpid]"},
-                {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/bytes_count/per_flow/",
-            ),
-            (
-                {"dpid": "[dpid]"},
-                {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/bytes_count/sum/",
+                "/api/amlight/flow_stats/v1/bytes_count/per_flow/",
             ),
         ]
         urls = self.get_napp_urls(self.napp)
@@ -165,52 +156,6 @@ class TestMain(TestCase):
         assert json_response[0]["packet_per_second"] == 2.0
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_packet_count_sum(self, mock_from_flow):
-        """Test packet_count_sum rest call."""
-        flow_stats = {
-            'byte_count': 10,
-            'duration_sec': 20,
-            'duration_nsec': 30,
-            'packet_count': 40
-            }
-        flow_id = '6055f13593fad45e0b4699f49d56b105'
-        flow_stats_dict_mock = {flow_id: flow_stats}
-        dpid_id = "00:00:00:00:00:00:00:01"
-        flow_by_sw = {dpid_id: flow_stats_dict_mock}
-        mock_from_flow.return_value = flow_by_sw
-
-        rest_name = "packet_count/sum"
-        self._patch_switch_flow(flow_id)
-
-        mock_from_flow.return_value = flow_by_sw
-        response = self._get_rest_response(rest_name, dpid_id)
-        json_response = json.loads(response.data)
-        assert json_response == 40
-
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_bytes_count_sum(self, mock_from_flow):
-        """Test bytes_count_sum rest call."""
-        flow_stats = {
-            'byte_count': 10,
-            'duration_sec': 20,
-            'duration_nsec': 30,
-            'packet_count': 40
-            }
-        flow_id = '6055f13593fad45e0b4699f49d56b105'
-        flow_stats_dict_mock = {flow_id: flow_stats}
-        dpid_id = "00:00:00:00:00:00:00:01"
-        flow_by_sw = {dpid_id: flow_stats_dict_mock}
-        mock_from_flow.return_value = flow_by_sw
-
-        rest_name = "bytes_count/sum"
-        self._patch_switch_flow(flow_id)
-
-        mock_from_flow.return_value = flow_by_sw
-        response = self._get_rest_response(rest_name, dpid_id)
-        json_response = json.loads(response.data)
-        assert json_response == 10
-
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_bytes_count_per_flow(self, mock_from_flow):
         """Test bytes_count_per_flow rest call."""
         flow_stats = {
@@ -249,7 +194,7 @@ class TestMain(TestCase):
         mock_from_flow.return_value = flow_by_sw
 
         api = get_test_client(self.napp.controller, self.napp)
-        endpoint = "/v1/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
         url = f"{self.server_name_url}"+endpoint
 
         response = api.get(url)
@@ -271,7 +216,7 @@ class TestMain(TestCase):
         mock_from_flow.return_value = flow_by_sw
 
         api = get_test_client(self.napp.controller, self.napp)
-        endpoint = "/v1/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
         url = f"{self.server_name_url}"+endpoint
 
         response = api.get(url)
