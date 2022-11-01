@@ -117,8 +117,8 @@ class Main(KytosNApp):
         """
         # pylint: disable=too-many-arguments
         # pylint: disable=unused-variable
-        start_date = request.args.get('start_date', 0)
-        end_date = request.args.get('end_date', 0)
+        # start_date = request.args.get('start_date', 0)
+        # end_date = request.args.get('end_date', 0)
         # pylint: enable=unused-variable
 
         if total:
@@ -133,8 +133,10 @@ class Main(KytosNApp):
         # We don't have statistics persistence yet, so for now this only works
         # for start and end equals to zero
         flows = self.flow_stats_by_dpid_flow_id([dpid])
-        flows = flows[dpid]
+        flows = flows.get(dpid)
 
+        if flows is None:
+            return jsonify(count_flows)
         for flow_id, stats in flows.items():
             count = stats[field]
             if total:
@@ -146,7 +148,6 @@ class Main(KytosNApp):
                 count_flows.append({'flow_id': flow_id,
                                     counter: count,
                                     rate: per_second})
-
         return jsonify(count_flows)
 
     @listen_to('kytos/of_core.flow_stats.received')

@@ -82,6 +82,30 @@ class TestMain(TestCase):
         urls = self.get_napp_urls(self.napp)
         assert len(expected_urls) == len(urls)
 
+    def test_flow_from_id(self):
+        """Test flow_from_id function"""
+        flow = self._get_mocked_flow_base()
+        self.napp.flows_stats_dict = {
+            flow.id: flow
+        }
+        results = self.napp.flow_from_id(flow.id)
+        assert results.id == flow.id
+
+    def test_flow_from_id__fail(self):
+        """Test flow_from_id function"""
+        flow = self._get_mocked_flow_base()
+        self.napp.flows_stats_dict = {
+            flow.id: flow
+        }
+        results = self.napp.flow_from_id('1')
+        assert results is None
+
+    def test_flow_from_id__empty(self):
+        """Test flow_from_id function when flows_stats_dict is empty"""
+        self.napp.flows_stats_dict = {}
+        results = self.napp.flow_from_id('1')
+        assert results is None
+
     def test_packet_count__fail(self):
         """Test bytes_count rest call with wrong flow_id."""
         flow_id = "123456789"
@@ -130,6 +154,14 @@ class TestMain(TestCase):
         assert json_response["bytes_counter"] == 10
         assert json_response["bits_per_second"] == 4.0
 
+    def test_packet_count_per_flow__empty(self):
+        """Test packet_count rest call with a flow that does not exist ."""
+        flow_id = "123456789"
+        rest_name = "packet_count/per_flow"
+        response = self._get_rest_response(rest_name, flow_id)
+        json_response = json.loads(response.data)
+        assert len(json_response) == 0
+
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_packet_count_per_flow(self, mock_from_flow):
         """Test packet_count_per_flow rest call."""
@@ -147,13 +179,19 @@ class TestMain(TestCase):
 
         rest_name = "packet_count/per_flow"
         self._patch_switch_flow(flow_id)
-
-        mock_from_flow.return_value = flow_by_sw
         response = self._get_rest_response(rest_name, dpid_id)
         json_response = json.loads(response.data)
         assert json_response[0]["flow_id"] == flow_id
         assert json_response[0]["packet_counter"] == 40
         assert json_response[0]["packet_per_second"] == 2.0
+
+    def test_bytes_count_per_flow__empty(self):
+        """Test bytes_count rest call with a flow that does not exist ."""
+        flow_id = "123456789"
+        rest_name = "bytes_count/per_flow"
+        response = self._get_rest_response(rest_name, flow_id)
+        json_response = json.loads(response.data)
+        assert len(json_response) == 0
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_bytes_count_per_flow(self, mock_from_flow):
@@ -173,12 +211,51 @@ class TestMain(TestCase):
         rest_name = "bytes_count/per_flow"
         self._patch_switch_flow(flow_id)
 
-        mock_from_flow.return_value = flow_by_sw
         response = self._get_rest_response(rest_name, dpid_id)
         json_response = json.loads(response.data)
         assert json_response[0]["flow_id"] == flow_id
         assert json_response[0]["bytes_counter"] == 10
         assert json_response[0]["bits_per_second"] == 4.0
+
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    def test_flows_counters_packet(self, mock_from_flow):
+        """Test flows_counters function for packet"""
+        flow_stats = {
+            'byte_count': 10,
+            'duration_sec': 20,
+            'duration_nsec': 30,
+            'packet_count': 40
+            }
+        flow_id = '6055f13593fad45e0b4699f49d56b105'
+        flow_stats_dict_mock = {flow_id: flow_stats}
+        dpid_id = "00:00:00:00:00:00:00:01"
+        flow_by_sw = {dpid_id: flow_stats_dict_mock}
+        mock_from_flow.return_value = flow_by_sw
+
+        with get_controller_mock().api_server.app.app_context():
+            response = self.napp.flows_counters('packet_count', dpid_id)
+            json_response = response.json
+            assert len(json_response) == 1
+
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    def test_flows_counters_bytes(self, mock_from_flow):
+        """Test flows_counters function for bytes"""
+        flow_stats = {
+            'byte_count': 10,
+            'duration_sec': 20,
+            'duration_nsec': 30,
+            'packet_count': 40
+            }
+        flow_id = '6055f13593fad45e0b4699f49d56b105'
+        flow_stats_dict_mock = {flow_id: flow_stats}
+        dpid_id = "00:00:00:00:00:00:00:01"
+        flow_by_sw = {dpid_id: flow_stats_dict_mock}
+        mock_from_flow.return_value = flow_by_sw
+
+        with get_controller_mock().api_server.app.app_context():
+            response = self.napp.flows_counters('byte_count', dpid_id)
+            json_response = response.json
+            assert len(json_response) == 1
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_flow_stats_by_dpid_flow_id(self, mock_from_flow):
@@ -292,7 +369,7 @@ class TestMain(TestCase):
         mock_handle_stats.assert_called_once()
 
     @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply_received")
-    def test_handle_stats_received_fail(self, mock_handle_stats):
+    def test_handle_stats_received__fail(self, mock_handle_stats):
         """Test handle_stats_received function for
         fail when replies_flows is not in content."""
 
