@@ -115,11 +115,6 @@ class Main(KytosNApp):
         """Calculate flows statistics.
         The returned statistics are both per flow and for the sum of flows
         """
-        # pylint: disable=too-many-arguments
-        # pylint: disable=unused-variable
-        # start_date = request.args.get('start_date', 0)
-        # end_date = request.args.get('end_date', 0)
-        # pylint: enable=unused-variable
 
         if total:
             count_flows = 0
