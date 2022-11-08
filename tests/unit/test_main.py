@@ -301,6 +301,19 @@ class TestMain(TestCase):
         assert response.json == expected
         assert response.status_code == 200
 
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    def test_flow_stats_by_dpid_flow_id_not_found(self, mock_from_flow):
+        """Test flow_stats rest call."""
+        flow_by_sw = {}
+        mock_from_flow.return_value = flow_by_sw
+
+        api = get_test_client(self.napp.controller, self.napp)
+        endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        url = f"{self.server_name_url}"+endpoint
+
+        response = api.get(url)
+        assert len(response.json) == 0
+
     def _patch_switch_flow(self, flow_id):
         """Helper method to patch controller to return switch/flow data."""
         # patching the flow_stats object in the switch

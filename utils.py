@@ -1,37 +1,6 @@
 """Utility classes and definitions."""
 import struct
 
-from napps.amlight.sdntrace.shared.singleton import Singleton
-
-
-class Flows(metaclass=Singleton):
-    """Class to store all flows installed in the switches."""
-
-    def __init__(self):
-        """Institate an empty flow dict."""
-        self._flows = {}
-
-    def clear(self, dpid):
-        """Clear the list of flows of the given switch."""
-        self._flows[dpid] = []
-
-    def add_flow(self, dpid, flow):
-        """Add a flow to the list of flows of the given switch."""
-        if dpid not in self._flows:
-            self._flows[dpid] = []
-        self._flows[dpid].append(flow)
-
-    def get_flows(self, dpid):
-        """Return the list of flows of the given switch."""
-        if dpid in self._flows:
-            return self._flows[dpid]
-        return None
-
-    def sort(self, dpid):
-        """Sort the list of flows of the given switch by priority."""
-        if dpid in self._flows:
-            self._flows[dpid].sort(key=lambda f: f.priority, reverse=True)
-
 
 class IPv4AddressWithMask:
     """Class to represent an IPv4 address with netmask."""
@@ -101,11 +70,3 @@ class IPv6AddressWithMask:
         """Unpack IPv6 address and mask."""
         self.address = int.from_bytes(buffer[start:start+16], 'big')
         self.netmask = int.from_bytes(buffer[start+16:start+32], 'big')
-
-
-def format_request(request):
-    """Format user request to match function format."""
-    args = {}
-    for key, value in request.items():
-        args[key] = value
-    return args
