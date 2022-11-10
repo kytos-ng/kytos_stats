@@ -4,67 +4,56 @@ info:
   version: v1
   description: Flow structures and statistics
 paths:
-  /api/amlight/flow_stats/flow/match/{dpid}:
+  /api/amlight/flow_stats/v1/flow/stats:
     get:
-      summary: Return first flow matching request.
-      description: Match the flows in switch with args in request, returning the first match
+      tags:
+        - object
+      summary: Return flow stats.
+      description: Return the stats of flows given a list of dpids or the stats of all flows if no dpid.
       parameters:  
         - name: dpid
           schema:
-            type: string
-          required: true
-          description: Datapath ID of the switch
-          in: path
-        - name: in_port
-          schema:
-            type: string
-          required: true
-          description: Incoming port
+            type: array
+            items:
+              type: string
+          description: List of switch ids
+          required: false
           in: query
+          example: ["00:00:00:00:00:00:00:01","00:00:00:00:00:00:00:02"]  
       responses:
-        200:
+        200:  
           description: Describe a successful call.
           content:
-            application/json:
+            application/json:  
               schema:
                 type: object
                 properties:
-                  prop_one:
-                    type: string
-                    description: Meaning of prop_one
-                    example: an example of prop_one
-                  second_prop:
-                    type: integer
-                    description: Meaning of second_prop
-                    example: 42
-  /api/amlight/flow_stats/flow/stats/{dpid}:
-    get:
-      summary: Return all flows matching request.
-      description: Match the flows in switch with args in request, returning all of them
-      parameters:  
-        - name: dpid
-          schema:
-            type: string
-          required: true
-          description: Datapath ID of the switch
-          in: path
-      responses:
-        200:  # You can add more responses
-          description: Describe a successful call.
-          content:
-            application/json:  # You can also use text/plain, for example
-              schema:
-                type: object  # Adapt to your response
-                properties:
-                  prop_one:
-                    type: string
-                    description: Meaning of prop_one
-                    example: an example of prop_one
-                  second_prop:
-                    type: integer
-                    description: Meaning of second_prop
-                    example: 42
-  /api/amlight/flow_stats/packet_count/{flow_id}:
+                  switch: 
+                    type: object
+                    properties:
+                      flow_id:
+                        type: string
+                        example: '2e8155af1a85644a166b28deb5af1f79'
+                      value:
+                        type: object
+                        properties:
+                          byte_count:
+                            type: integer
+                            format: int16
+                            example: 148
+                          duration_sec:
+                            type: integer
+                            format: int16
+                            example: 1589
+                          duration_nsec:
+                            type: integer
+                            format: int64
+                            example: 556000000
+                          packet_count:
+                            type: integer
+                            format: int64
+                            example: 2
+  /api/amlight/flow_stats/v1/packet_count/{flow_id}:
     get:
       summary: Packet count of an specific flow.
       description: Counters of a flow.
@@ -102,7 +91,7 @@ paths:
               schema:
                 type: string
                 example: Flow not found
-  /api/amlight/flow_stats/bytes_count/{flow_id}:
+  /api/amlight/flow_stats/v1/bytes_count/{flow_id}:
     get:
       summary: Bytes count of an specific flow.
       description: Counter per byte of a flow.
@@ -140,7 +129,7 @@ paths:
               schema:
                 type: string
                 example: Flow not found
-  /api/amlight/flow_stats/packet_count/per_flow/{dpid}:
+  /api/amlight/flow_stats/v1/packet_count/per_flow/{dpid}:
     get:
       summary: Per flow packet count.
       description: Packet count per flow of a switch
@@ -180,33 +169,7 @@ paths:
               schema:
                 type: string
                 example: Switch not found
-  /api/amlight/flow_stats/packet_count/sum/{dpid}:
-    get:
-      summary: Sum of packet count flow stats.
-      description: Sum of packet counts of all flow in a switch
-      parameters: 
-        - name: dpid
-          schema:
-            type: string
-          required: true
-          description: Datapath ID
-          in: path
-      responses:
-        200:  
-          description: Counters ok
-          content:
-            application/json:
-              schema:
-                type: integer
-                example: 2004
-        404:
-          description: Does not exist
-          content:
-            application/json:
-              schema:
-                type: string
-                example: Switch not found
-  /api/amlight/flow_stats/bytes_count/per_flow/{dpid}:
+  /api/amlight/flow_stats/v1/bytes_count/per_flow/{dpid}:
     get:
       summary: Per flow bytes count.
       description: Bytes count per flow of a switch
@@ -239,32 +202,6 @@ paths:
                       type: number
                       description: Bits per second since flow creation
                       example: 25.345
-        404:
-          description: Does not exist
-          content:
-            application/json:
-              schema:
-                type: string
-                example: Switch not found
-  /api/amlight/flow_stats/bytes_count/sum/{dpid}:
-    get:
-      summary: Sum of bytes count flow stats.
-      description: Sum of bytes counts of all flow in a switch
-      parameters:  
-        - name: dpid
-          schema:
-            type: string
-          required: true
-          description: Datapath ID of the switch
-          in: path
-      responses:
-        200:  
-          description: Counters ok
-          content:
-            application/json:
-              schema:
-                type: integer
-                example: 34204
         404:
           description: Does not exist
           content:

@@ -14,12 +14,19 @@ Added
 Changed
 =======
 
+- Update GET ``v1/flow/stats`` endpoint to listing flow stats by dpid.
+- v1 is bumped on endpoint routes: GET ``v1/flow/stats``, GET ``v1/packet_count/<flow_id>``, GET ``v1/bytes_count/<flow_id>``, GET ``v1/packet_count/per_flow/<dpid>``, GET ``v1/bytes_count/per_flow/<dpid>``
+
 Deprecated
 ==========
 
 Removed
 =======
 - Removed support for OpenFlow 1.0
+- `GenericFlow` abstraction
+- GET ``flow/match/<dpid>`` endpoint
+- GET ``packet_count/sum/{{dpid}}`` endpoint
+- GET ``bytes_count/sum/{{dpid}}`` endpoint
 
 Fixed
 =====
