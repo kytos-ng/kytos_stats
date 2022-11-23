@@ -24,6 +24,16 @@ class TestMain(TestCase):
             "http://localhost:8181/api/amlight/flow_stats/v1"
         self.napp = Main(get_controller_mock())
 
+    def test_get_event_listeners(self):
+        """Verify all event listeners registered."""
+        expected_events = [
+            'kytos/of_core.flow_stats.received'
+        ]
+        actual_events = self.napp.listeners()
+
+        for _event in expected_events:
+            self.assertIn(_event, actual_events, _event)
+
     @staticmethod
     def get_napp_urls(napp):
         """Return the amlight/flow_stats urls.
@@ -81,6 +91,12 @@ class TestMain(TestCase):
         ]
         urls = self.get_napp_urls(self.napp)
         assert len(expected_urls) == len(urls)
+
+    def test_execute(self):
+        """Test execute."""
+
+    def test_shutdown(self):
+        """Test shutdown."""
 
     def test_flow_from_id(self):
         """Test flow_from_id function"""
@@ -165,14 +181,17 @@ class TestMain(TestCase):
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_packet_count_per_flow(self, mock_from_flow):
         """Test packet_count_per_flow rest call."""
-        flow_stats = {
-            'byte_count': 10,
-            'duration_sec': 20,
-            'duration_nsec': 30,
-            'packet_count': 40
+        flow_info = {
+            "byte_count": 10,
+            "duration_sec": 20,
+            "duration_nsec": 30,
+            "packet_count": 40,
+            "cookie": 12310228866111668291,
+            "match": {"in_port": 1},
+            "priority": 32768
             }
         flow_id = '6055f13593fad45e0b4699f49d56b105'
-        flow_stats_dict_mock = {flow_id: flow_stats}
+        flow_stats_dict_mock = {flow_id: flow_info}
         dpid_id = "00:00:00:00:00:00:00:01"
         flow_by_sw = {dpid_id: flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
@@ -196,14 +215,17 @@ class TestMain(TestCase):
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_bytes_count_per_flow(self, mock_from_flow):
         """Test bytes_count_per_flow rest call."""
-        flow_stats = {
-            'byte_count': 10,
-            'duration_sec': 20,
-            'duration_nsec': 30,
-            'packet_count': 40
+        flow_info = {
+            "byte_count": 10,
+            "duration_sec": 20,
+            "duration_nsec": 30,
+            "packet_count": 40,
+            "cookie": 12310228866111668291,
+            "match": {"in_port": 1},
+            "priority": 32768
             }
         flow_id = '6055f13593fad45e0b4699f49d56b105'
-        flow_stats_dict_mock = {flow_id: flow_stats}
+        flow_stats_dict_mock = {flow_id: flow_info}
         dpid_id = "00:00:00:00:00:00:00:01"
         flow_by_sw = {dpid_id: flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
@@ -220,14 +242,17 @@ class TestMain(TestCase):
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_flows_counters_packet(self, mock_from_flow):
         """Test flows_counters function for packet"""
-        flow_stats = {
-            'byte_count': 10,
-            'duration_sec': 20,
-            'duration_nsec': 30,
-            'packet_count': 40
+        flow_info = {
+            "byte_count": 10,
+            "duration_sec": 20,
+            "duration_nsec": 30,
+            "packet_count": 40,
+            "cookie": 12310228866111668291,
+            "match": {"in_port": 1},
+            "priority": 32768
             }
         flow_id = '6055f13593fad45e0b4699f49d56b105'
-        flow_stats_dict_mock = {flow_id: flow_stats}
+        flow_stats_dict_mock = {flow_id: flow_info}
         dpid_id = "00:00:00:00:00:00:00:01"
         flow_by_sw = {dpid_id: flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
@@ -240,14 +265,17 @@ class TestMain(TestCase):
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_flows_counters_bytes(self, mock_from_flow):
         """Test flows_counters function for bytes"""
-        flow_stats = {
-            'byte_count': 10,
-            'duration_sec': 20,
-            'duration_nsec': 30,
-            'packet_count': 40
+        flow_info = {
+            "byte_count": 10,
+            "duration_sec": 20,
+            "duration_nsec": 30,
+            "packet_count": 40,
+            "cookie": 12310228866111668291,
+            "match": {"in_port": 1},
+            "priority": 32768
             }
         flow_id = '6055f13593fad45e0b4699f49d56b105'
-        flow_stats_dict_mock = {flow_id: flow_stats}
+        flow_stats_dict_mock = {flow_id: flow_info}
         dpid_id = "00:00:00:00:00:00:00:01"
         flow_by_sw = {dpid_id: flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
@@ -260,13 +288,16 @@ class TestMain(TestCase):
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_flow_stats_by_dpid_flow_id(self, mock_from_flow):
         """Test flow_stats rest call."""
-        flow_stats = {
-            'byte_count': 148,
-            'duration_sec': 1589,
-            'duration_nsec': 556000000,
-            'packet_count': 2
+        flow_info = {
+            "byte_count": 10,
+            "duration_sec": 20,
+            "duration_nsec": 30,
+            "packet_count": 40,
+            "cookie": 12310228866111668291,
+            "match": {"in_port": 1},
+            "priority": 32768
             }
-        flow_stats_dict_mock = {'6055f13593fad45e0b4699f49d56b105': flow_stats}
+        flow_stats_dict_mock = {'6055f13593fad45e0b4699f49d56b105': flow_info}
         flow_by_sw = {"00:00:00:00:00:00:00:01": flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
 
@@ -280,15 +311,43 @@ class TestMain(TestCase):
         assert response.status_code == 200
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    def test_flow_stats_by_dpid_flow_id_without_dpid(self, mock_from_flow):
+        """Test flow_stats rest call."""
+        flow_info = {
+            "byte_count": 10,
+            "duration_sec": 20,
+            "duration_nsec": 30,
+            "packet_count": 40,
+            "cookie": 12310228866111668291,
+            "match": {"in_port": 1},
+            "priority": 32768
+            }
+        flow_stats_dict_mock = {'6055f13593fad45e0b4699f49d56b105': flow_info}
+        flow_by_sw = {"00:00:00:00:00:00:00:01": flow_stats_dict_mock}
+        mock_from_flow.return_value = flow_by_sw
+
+        api = get_test_client(self.napp.controller, self.napp)
+        endpoint = "/flow/stats"
+        url = f"{self.server_name_url}"+endpoint
+
+        response = api.get(url)
+        expected = flow_by_sw
+        assert response.json == expected
+        assert response.status_code == 200
+
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
     def test_flow_stats_by_dpid_flow_id_with_dpid(self, mock_from_flow):
         """Test flow_stats rest call."""
-        flow_stats = {
-            'byte_count': 148,
-            'duration_sec': 1589,
-            'duration_nsec': 556000000,
-            'packet_count': 2
+        flow_info = {
+            "byte_count": 10,
+            "duration_sec": 20,
+            "duration_nsec": 30,
+            "packet_count": 40,
+            "cookie": 12310228866111668291,
+            "match": {"in_port": 1},
+            "priority": 32768
             }
-        flow_stats_dict_mock = {'6055f13593fad45e0b4699f49d56b105': flow_stats}
+        flow_stats_dict_mock = {'6055f13593fad45e0b4699f49d56b105': flow_info}
         flow_by_sw = {"00:00:00:00:00:00:00:01": flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
 

@@ -51,7 +51,11 @@ class Main(KytosNApp):
             if dpid in dpids:
                 if dpid not in flow_stats_by_id:
                     flow_stats_by_id[dpid] = {}
-                flow_stats_by_id[dpid].update({flow_id: flow.stats.as_dict()})
+                info_flow_as_dict = flow.stats.as_dict()
+                info_flow_as_dict.update({"cookie": flow.cookie})
+                info_flow_as_dict.update({"priority": flow.priority})
+                info_flow_as_dict.update({"match": flow.match.as_dict()})
+                flow_stats_by_id[dpid].update({flow_id: info_flow_as_dict})
         return flow_stats_by_id
 
     @rest('v1/flow/stats')
