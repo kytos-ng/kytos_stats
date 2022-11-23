@@ -53,6 +53,16 @@ paths:
                             type: integer
                             format: int64
                             example: 2
+                          cookie:
+                            type: integer
+                            format: int64
+                            example: 12310228866111668291
+                          priority:
+                            type: integer
+                            format: int64
+                            example: 32768
+                          match:
+                            type: object
   /api/amlight/flow_stats/v1/packet_count/{flow_id}:
     get:
       summary: Packet count of an specific flow.
