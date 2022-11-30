@@ -53,7 +53,7 @@ Subscribed
    :target: https://github.com/amlight/flow_stats
 .. |License| image:: https://img.shields.io/github/license/amlight/flow_stats.svg
    :target: https://github.com/amlight/flow_stats/blob/master/LICENSE
-.. |Build| image:: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/?branch=master
+.. |Build| image:: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/badges/build.png?b=master
   :alt: Build status
   :target: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/?branch=master
 .. |Coverage| image:: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/badges/coverage.png?b=master
