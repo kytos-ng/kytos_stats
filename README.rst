@@ -53,17 +53,17 @@ Subscribed
    :target: https://github.com/amlight/flow_stats
 .. |License| image:: https://img.shields.io/github/license/amlight/flow_stats.svg
    :target: https://github.com/amlight/flow_stats/blob/master/LICENSE
-.. |Build| image:: https://scrutinizer-ci.com/g/amlight/flow_stats/badges/build.png?b=master
+.. |Build| image:: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/?branch=master
   :alt: Build status
-  :target: https://scrutinizer-ci.com/g/amlight/flow_stats/?branch=master
-.. |Coverage| image:: https://scrutinizer-ci.com/g/amlight/flow_stats/badges/coverage.png?b=master
+  :target: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/?branch=master
+.. |Coverage| image:: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/badges/coverage.png?b=master
   :alt: Code coverage
-  :target: https://scrutinizer-ci.com/g/amlight/flow_stats/?branch=master
-.. |Quality| image:: https://scrutinizer-ci.com/g/amlight/flow_stats/badges/quality-score.png?b=master
+  :target: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/?branch=master
+.. |Quality| image:: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/badges/quality-score.png?b=master
   :alt: Code-quality score
-  :target: https://scrutinizer-ci.com/g/amlight/flow_stats/?branch=master
+  :target: https://scrutinizer-ci.com/g/kytos-ng/flow_stats/?branch=master
 .. |Tag| image:: https://img.shields.io/github/tag/amlight/flow_stats.svg
-   :target: https://github.com/amlight/flow_stats/tags
+   :target: https://github.com/kytos-ng/flow_stats/tags
 
 
 
