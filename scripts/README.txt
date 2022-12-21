@@ -11,7 +11,7 @@ This folder contains Flow_stats's related scripts.
 - There's no additional Python libraries dependencies required (the libs we use are usually installed by default).
 - Make sure your Kytos server is running and allowing requests on the Napp `flow_stats`, `mef_eline` and `topology` (via HTTP GET method).
 - When using authentication (recommended), you will have three options to provide the credentials: via command line parameters (unsafe) `--user` and `--pass`; via a file in the filesystem (`--passfile`) which contains the username in the first line and the password in the second line (you can change the permissions of the file to restrict access); via environment variables, such as:
-- Export MongoDB related variables that [db/client.py](../db/client.py) uses, make sure the hosts names can be resolved:
+- Export  related variables that [kytos_zabbix.py](scripts/kytos_zabbix.py) optionally uses
 
 ```
 export KYTOS_URL=https://mykytoserver.domain.com/api
