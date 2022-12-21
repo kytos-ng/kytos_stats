@@ -26,7 +26,7 @@ The `kytos_zabbix.py` script has a few monitoring capabilities, such as the moni
 Here is the complete help and options:
 
 ```
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py --help
+# ./kytos_zabbix.py --help
 usage: kytos_zabbix.py [-h] [-l URL] [-u USERNAME] [-p PASSWORD] [-f AUTHFILE]
                        [-c CACHE_POLICY] [-o {1,2,3,4,5}] [-t TARGET]
                        [-z {1,2}] [-s {1,2,3,4}]
