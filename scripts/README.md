@@ -15,6 +15,7 @@ This folder contains Flow_stats's related scripts.
 
 ```
 export KYTOS_URL=https://mykytoserver.domain.com/api
+export KYTOS_TIMEOUT=5
 export KYTOS_USERNAME=zabbix_reader
 export KYTOS_PASSWORD=changeme123
 ```
@@ -42,6 +43,9 @@ optional arguments:
                         Authentication file containing username (first line)
                         and password (second line) to authenticate into Kytos
                         API
+  -T TIMEOUT, --timeout TIMEOUT
+                        You can tell Requests to stop waiting for a response
+                        after a given number of seconds
   -c CACHE_POLICY, --cache_policy CACHE_POLICY
                         Cache policy: never, always or X seconds (default to
                         cache for 600 seconds)

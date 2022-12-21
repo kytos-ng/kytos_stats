@@ -37,6 +37,7 @@ parser.add_argument("-l", "--url", dest="url", help="URL for your Kytos REST API
 parser.add_argument("-u", "--user", dest="username", help="Username to authenticate into Kytos API")
 parser.add_argument("-p", "--pass", dest="password", help="Password to authenticate into Kytos API")
 parser.add_argument("-f", "--authfile", dest="authfile", help="Authentication file containing username (first line) and password (second line) to authenticate into Kytos API")
+parser.add_argument("-T", "--timeout", dest="timeout", type=int, help="You can tell Requests to stop waiting for a response after a given number of seconds", default=5)
 parser.add_argument("-c", "--cache_policy", dest="cache_policy", default=60, help="Cache policy: never, always or X seconds (default to cache for 600 seconds)")
 parser.add_argument("-o", "--monitoring_option", dest="option", type=int, default=1, choices=[1, 2, 3, 4, 5], help="Monitoring option: 1 - for monitor nodes, 2 - for monitor links, 3 - for monitor evcs (status), 4 - evc statistics, 5 - OpenFlow flows stats")
 parser.add_argument("-t", "--target", dest="target", help="Item status (0-down/others, 1-disabled, 2-up/primary, 3-up/backup). Argument is the item id to be monitored (depending on the -o option).")
@@ -56,6 +57,7 @@ if args.authfile:
     args.password = authdata[1].strip()
 
 args.url = os.environ.get("KYTOS_URL", args.url)
+args.timeout = os.environ.get("KYTOS_TIMEOUT", args.timeout)
 args.username = os.environ.get("KYTOS_USERNAME", args.username)
 args.password = os.environ.get("KYTOS_PASSWORD", args.password)
 
@@ -83,7 +85,7 @@ def get_data(option, url):
         auth = (args.username, args.password)  # assume HTTP Basic
 
     try:
-        response = requests.get(url, auth=auth)
+        response = requests.get(url, auth=auth, timeout=args.timeout)
         assert response.status_code == 200, response.text
         data = response.text
     except Exception as e:
