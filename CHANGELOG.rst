@@ -8,6 +8,28 @@ All notable changes to the flow_stats NApp will be documented in this file.
 Added
 =====
 
+Changed
+=======
+
+Deprecated
+==========
+
+Removed
+=======
+
+Fixed
+=====
+
+Security
+========
+
+
+[2022.3.0] - 2023-01-23
+***********************
+
+Added
+=====
+
 - Added `from_replies_flows` function to map a the replies_flows into generic flows.
 - Event ``kytos/of_core.flow_stats.received`` has replaced event ``kytos/of_core.v0x04.messages.in.ofpt_multipart_reply``.
 - Added `scripts/kytos_zabbix.py` script to demonstrate how Kytos can be monitored through Zabbix.
@@ -18,9 +40,6 @@ Changed
 - Update GET ``v1/flow/stats`` endpoint to listing flow stats by dpid.
 - v1 is bumped on endpoint routes: GET ``v1/flow/stats``, GET ``v1/packet_count/<flow_id>``, GET ``v1/bytes_count/<flow_id>``, GET ``v1/packet_count/per_flow/<dpid>``, GET ``v1/bytes_count/per_flow/<dpid>``
 
-Deprecated
-==========
-
 Removed
 =======
 - Removed support for OpenFlow 1.0
@@ -29,11 +48,6 @@ Removed
 - GET ``packet_count/sum/{{dpid}}`` endpoint
 - GET ``bytes_count/sum/{{dpid}}`` endpoint
 
-Fixed
-=====
-
-Security
-========
 
 [2022.2.1] - 2022-08-15
 ***********************
