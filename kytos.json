@@ -3,9 +3,9 @@
   "username": "amlight",
   "name": "flow_stats",
   "description": "Store flow information and show statistics about them.",
-  "version": "2022.2.1",
+  "version": "2022.3.0",
   "napp_dependencies": ["kytos/of_core"],
   "license": "",
   "tags": [],
-  "url": "https://github.com/amlight/flow_stats"
+  "url": "https://github.com/kytos-ng/flow_stats"
 }
