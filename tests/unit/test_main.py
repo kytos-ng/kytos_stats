@@ -1,6 +1,4 @@
 """Module to test the main napp file."""
-import json
-from unittest import TestCase
 from unittest.mock import MagicMock, patch
 from kytos.lib.helpers import (
     get_controller_mock,
@@ -12,17 +10,15 @@ from napps.amlight.flow_stats.main import Main
 
 
 # pylint: disable=too-many-public-methods, too-many-lines
-class TestMain(TestCase):
+class TestMain:
     """Test the Main class."""
 
-    def setUp(self):
-        """Execute steps before each tests.
-
-        Set the server_name_url_url from amlight/flow_stats
-        """
-        self.server_name_url = \
-            "http://localhost:8181/api/amlight/flow_stats/v1"
-        self.napp = Main(get_controller_mock())
+    def setup_method(self):
+        """Execute steps before each tests."""
+        controller = get_controller_mock()
+        self.napp = Main(controller)
+        self.api_client = get_test_client(controller, self.napp)
+        self.base_endpoint = "amlight/flow_stats/v1"
 
     def test_get_event_listeners(self):
         """Verify all event listeners registered."""
@@ -32,65 +28,7 @@ class TestMain(TestCase):
         actual_events = self.napp.listeners()
 
         for _event in expected_events:
-            self.assertIn(_event, actual_events, _event)
-
-    @staticmethod
-    def get_napp_urls(napp):
-        """Return the amlight/flow_stats urls.
-
-        The urls will be like:
-
-        urls = [
-            (options, methods, url)
-        ]
-
-        """
-        controller = napp.controller
-        controller.api_server.register_napp_endpoints(napp)
-
-        urls = []
-        for rule in controller.api_server.app.url_map.iter_rules():
-            options = {}
-            for arg in rule.arguments:
-                options[arg] = f"[{0}]".format(arg)
-
-            if f"{napp.username}/{napp.name}" in str(rule):
-                urls.append((options, rule.methods, f"{str(rule)}"))
-
-        return urls
-
-    def test_verify_api_urls(self):
-        """Verify all APIs registered."""
-
-        expected_urls = [
-            (
-                {"dpid": "[dpid]"},
-                {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/v1/flow/stats/",
-            ),
-            (
-                {"flow_id": "[flow_id]"},
-                {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/v1/packet_count/",
-            ),
-            (
-                {"flow_id": "[flow_id]"},
-                {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/v1/bytes_count/",
-            ),
-            (
-                {"dpid": "[dpid]"},
-                {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/v1/packet_count/per_flow/",
-            ),
-            (
-                {"dpid": "[dpid]"},
-                {"OPTIONS", "HEAD", "GET"},
-                "/api/amlight/flow_stats/v1/bytes_count/per_flow/",
-            ),
-        ]
-        urls = self.get_napp_urls(self.napp)
-        assert len(expected_urls) == len(urls)
+            assert _event in actual_events
 
     def test_execute(self):
         """Test execute."""
@@ -122,64 +60,62 @@ class TestMain(TestCase):
         results = self.napp.flow_from_id('1')
         assert results is None
 
-    def test_packet_count__fail(self):
-        """Test bytes_count rest call with wrong flow_id."""
+    async def test_packet_count_not_found(self):
+        """Test packet_count rest call with wrong flow_id."""
         flow_id = "123456789"
-        rest_name = "packet_count"
-        response = self._get_rest_response(rest_name, flow_id)
-
-        assert response.data == b"Flow does not exist"
+        endpoint = f"{self.base_endpoint}/packet_count/{flow_id}"
+        response = await self.api_client.get(endpoint)
+        assert response.status_code == 404
+        assert response.json()["description"] == "Flow does not exist"
 
     @patch("napps.amlight.flow_stats.main.Main.flow_from_id")
-    def test_packet_count(self, mock_from_flow):
+    async def test_packet_count(self, mock_from_flow):
         """Test packet_count rest call."""
         flow_id = '1'
-        dpid_id = '1'
         mock_from_flow.return_value = self._get_mocked_flow_base()
 
-        rest_name = "packet_count"
         self._patch_switch_flow(flow_id)
-
-        response = self._get_rest_response(rest_name, dpid_id)
-        json_response = json.loads(response.data)
+        endpoint = f"{self.base_endpoint}/packet_count/{flow_id}"
+        response = await self.api_client.get(endpoint)
+        assert response.status_code == 200
+        json_response = response.json()
         assert json_response["flow_id"] == flow_id
         assert json_response["packet_counter"] == 40
         assert json_response["packet_per_second"] == 2.0
 
-    def test_bytes_count__fail(self):
+    async def test_bytes_count_not_found(self):
         """Test bytes_count rest call with wrong flow_id."""
         flow_id = "123456789"
-        rest_name = "bytes_count"
-        response = self._get_rest_response(rest_name, flow_id)
-
-        assert response.data == b"Flow does not exist"
+        endpoint = f"{self.base_endpoint}/bytes_count/{flow_id}"
+        response = await self.api_client.get(endpoint)
+        assert response.status_code == 404
+        assert response.json()["description"] == "Flow does not exist"
 
     @patch("napps.amlight.flow_stats.main.Main.flow_from_id")
-    def test_bytes_count(self, mock_from_flow):
+    async def test_bytes_count(self, mock_from_flow):
         """Test bytes_count rest call."""
         flow_id = '1'
-        dpid_id = '1'
         mock_from_flow.return_value = self._get_mocked_flow_base()
-
-        rest_name = "bytes_count"
         self._patch_switch_flow(flow_id)
 
-        response = self._get_rest_response(rest_name, dpid_id)
-        json_response = json.loads(response.data)
+        endpoint = f"{self.base_endpoint}/bytes_count/{flow_id}"
+        response = await self.api_client.get(endpoint)
+        assert response.status_code == 200
+        json_response = response.json()
         assert json_response["flow_id"] == flow_id
         assert json_response["bytes_counter"] == 10
         assert json_response["bits_per_second"] == 4.0
 
-    def test_packet_count_per_flow__empty(self):
+    async def test_packet_count_per_flow_empty(self):
         """Test packet_count rest call with a flow that does not exist ."""
         flow_id = "123456789"
-        rest_name = "packet_count/per_flow"
-        response = self._get_rest_response(rest_name, flow_id)
-        json_response = json.loads(response.data)
-        assert len(json_response) == 0
+        endpoint = f"{self.base_endpoint}/packet_count/per_flow/{flow_id}"
+        response = await self.api_client.get(endpoint)
+        assert response.status_code == 200
+        assert len(response.json()) == 0
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_packet_count_per_flow(self, mock_from_flow):
+    async def test_packet_count_per_flow(self, mock_from_flow):
         """Test packet_count_per_flow rest call."""
         flow_info = {
             "byte_count": 10,
@@ -192,28 +128,29 @@ class TestMain(TestCase):
             }
         flow_id = '6055f13593fad45e0b4699f49d56b105'
         flow_stats_dict_mock = {flow_id: flow_info}
-        dpid_id = "00:00:00:00:00:00:00:01"
-        flow_by_sw = {dpid_id: flow_stats_dict_mock}
+        dpid = "00:00:00:00:00:00:00:01"
+        flow_by_sw = {dpid: flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
 
-        rest_name = "packet_count/per_flow"
         self._patch_switch_flow(flow_id)
-        response = self._get_rest_response(rest_name, dpid_id)
-        json_response = json.loads(response.data)
+        endpoint = f"{self.base_endpoint}/packet_count/per_flow/{dpid}"
+        response = await self.api_client.get(endpoint)
+
+        json_response = response.json()
         assert json_response[0]["flow_id"] == flow_id
         assert json_response[0]["packet_counter"] == 40
         assert json_response[0]["packet_per_second"] == 2.0
 
-    def test_bytes_count_per_flow__empty(self):
+    async def test_bytes_count_per_flow__empty(self):
         """Test bytes_count rest call with a flow that does not exist ."""
         flow_id = "123456789"
-        rest_name = "bytes_count/per_flow"
-        response = self._get_rest_response(rest_name, flow_id)
-        json_response = json.loads(response.data)
-        assert len(json_response) == 0
+        endpoint = f"{self.base_endpoint}/bytes_count/per_flow/{flow_id}"
+        response = await self.api_client.get(endpoint)
+        assert response.status_code == 200
+        assert len(response.json()) == 0
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_bytes_count_per_flow(self, mock_from_flow):
+    async def test_bytes_count_per_flow(self, mock_from_flow):
         """Test bytes_count_per_flow rest call."""
         flow_info = {
             "byte_count": 10,
@@ -226,21 +163,23 @@ class TestMain(TestCase):
             }
         flow_id = '6055f13593fad45e0b4699f49d56b105'
         flow_stats_dict_mock = {flow_id: flow_info}
-        dpid_id = "00:00:00:00:00:00:00:01"
-        flow_by_sw = {dpid_id: flow_stats_dict_mock}
+        dpid = "00:00:00:00:00:00:00:01"
+        flow_by_sw = {dpid: flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
 
-        rest_name = "bytes_count/per_flow"
         self._patch_switch_flow(flow_id)
 
-        response = self._get_rest_response(rest_name, dpid_id)
-        json_response = json.loads(response.data)
+        endpoint = f"{self.base_endpoint}/bytes_count/per_flow/{dpid}"
+        response = await self.api_client.get(endpoint)
+        assert response.status_code == 200
+
+        json_response = response.json()
         assert json_response[0]["flow_id"] == flow_id
         assert json_response[0]["bytes_counter"] == 10
         assert json_response[0]["bits_per_second"] == 4.0
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_flows_counters_packet(self, mock_from_flow):
+    async def test_flows_counters_packet(self, mock_from_flow):
         """Test flows_counters function for packet"""
         flow_info = {
             "byte_count": 10,
@@ -253,17 +192,17 @@ class TestMain(TestCase):
             }
         flow_id = '6055f13593fad45e0b4699f49d56b105'
         flow_stats_dict_mock = {flow_id: flow_info}
-        dpid_id = "00:00:00:00:00:00:00:01"
-        flow_by_sw = {dpid_id: flow_stats_dict_mock}
+        dpid = "00:00:00:00:00:00:00:01"
+        flow_by_sw = {dpid: flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
 
-        with get_controller_mock().api_server.app.app_context():
-            response = self.napp.flows_counters('packet_count', dpid_id)
-            json_response = response.json
-            assert len(json_response) == 1
+        endpoint = f"{self.base_endpoint}/packet_count/per_flow/{dpid}"
+        response = await self.api_client.get(endpoint)
+        assert response.status_code == 200
+        assert len(response.json()) == 1
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_flows_counters_bytes(self, mock_from_flow):
+    async def test_flows_counters_bytes(self, mock_from_flow):
         """Test flows_counters function for bytes"""
         flow_info = {
             "byte_count": 10,
@@ -276,42 +215,17 @@ class TestMain(TestCase):
             }
         flow_id = '6055f13593fad45e0b4699f49d56b105'
         flow_stats_dict_mock = {flow_id: flow_info}
-        dpid_id = "00:00:00:00:00:00:00:01"
-        flow_by_sw = {dpid_id: flow_stats_dict_mock}
+        dpid = "00:00:00:00:00:00:00:01"
+        flow_by_sw = {dpid: flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
 
-        with get_controller_mock().api_server.app.app_context():
-            response = self.napp.flows_counters('byte_count', dpid_id)
-            json_response = response.json
-            assert len(json_response) == 1
-
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_flow_stats_by_dpid_flow_id(self, mock_from_flow):
-        """Test flow_stats rest call."""
-        flow_info = {
-            "byte_count": 10,
-            "duration_sec": 20,
-            "duration_nsec": 30,
-            "packet_count": 40,
-            "cookie": 12310228866111668291,
-            "match": {"in_port": 1},
-            "priority": 32768
-            }
-        flow_stats_dict_mock = {'6055f13593fad45e0b4699f49d56b105': flow_info}
-        flow_by_sw = {"00:00:00:00:00:00:00:01": flow_stats_dict_mock}
-        mock_from_flow.return_value = flow_by_sw
-
-        api = get_test_client(self.napp.controller, self.napp)
-        endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
-        url = f"{self.server_name_url}"+endpoint
-
-        response = api.get(url)
-        expected = flow_by_sw
-        assert response.json == expected
+        endpoint = f"{self.base_endpoint}/bytes_count/per_flow/{dpid}"
+        response = await self.api_client.get(endpoint)
         assert response.status_code == 200
+        assert len(response.json()) == 1
 
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_flow_stats_by_dpid_flow_id_without_dpid(self, mock_from_flow):
+    async def test_flow_stats_by_dpid_flow_id(self, mock_from_flow):
         """Test flow_stats rest call."""
         flow_info = {
             "byte_count": 10,
@@ -326,17 +240,40 @@ class TestMain(TestCase):
         flow_by_sw = {"00:00:00:00:00:00:00:01": flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
 
-        api = get_test_client(self.napp.controller, self.napp)
+        endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
+        assert response.status_code == 200
+        expected = flow_by_sw
+        assert response.json() == expected
+
+    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    async def test_flow_stats_by_dpid_flow_id_without_dpid(self,
+                                                           mock_from_flow):
+        """Test flow_stats rest call."""
+        flow_info = {
+            "byte_count": 10,
+            "duration_sec": 20,
+            "duration_nsec": 30,
+            "packet_count": 40,
+            "cookie": 12310228866111668291,
+            "match": {"in_port": 1},
+            "priority": 32768
+            }
+        flow_stats_dict_mock = {'6055f13593fad45e0b4699f49d56b105': flow_info}
+        flow_by_sw = {"00:00:00:00:00:00:00:01": flow_stats_dict_mock}
+        mock_from_flow.return_value = flow_by_sw
+
         endpoint = "/flow/stats"
-        url = f"{self.server_name_url}"+endpoint
-
-        response = api.get(url)
-        expected = flow_by_sw
-        assert response.json == expected
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
         assert response.status_code == 200
 
+        expected = flow_by_sw
+        assert response.json() == expected
+
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_flow_stats_by_dpid_flow_id_with_dpid(self, mock_from_flow):
+    async def test_flow_stats_by_dpid_flow_id_with_dpid(self, mock_from_flow):
         """Test flow_stats rest call."""
         flow_info = {
             "byte_count": 10,
@@ -351,27 +288,24 @@ class TestMain(TestCase):
         flow_by_sw = {"00:00:00:00:00:00:00:01": flow_stats_dict_mock}
         mock_from_flow.return_value = flow_by_sw
 
-        api = get_test_client(self.napp.controller, self.napp)
         endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
-        url = f"{self.server_name_url}"+endpoint
-
-        response = api.get(url)
-        expected = flow_by_sw
-        assert response.json == expected
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
         assert response.status_code == 200
 
+        expected = flow_by_sw
+        assert response.json() == expected
+
     @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
-    def test_flow_stats_by_dpid_flow_id_not_found(self, mock_from_flow):
+    async def test_flow_stats_by_dpid_flow_id_not_found(self, mock_from_flow):
         """Test flow_stats rest call."""
         flow_by_sw = {}
         mock_from_flow.return_value = flow_by_sw
-
-        api = get_test_client(self.napp.controller, self.napp)
         endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
-        url = f"{self.server_name_url}"+endpoint
-
-        response = api.get(url)
-        assert len(response.json) == 0
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
+        assert response.status_code == 200
+        assert len(response.json()) == 0
 
     def _patch_switch_flow(self, flow_id):
         """Helper method to patch controller to return switch/flow data."""
@@ -382,15 +316,6 @@ class TestMain(TestCase):
         self.napp.controller.switches = {"1": switch}
         self.napp.controller.get_switch_by_dpid = MagicMock()
         self.napp.controller.get_switch_by_dpid.return_value = switch
-
-    def _get_rest_response(self, rest_name, url_id):
-        """Helper method to call a rest endpoint."""
-        # call rest
-        api = get_test_client(get_controller_mock(), self.napp)
-        url = f"{self.server_name_url}/{rest_name}/{url_id}"
-        response = api.get(url, content_type="application/json")
-
-        return response
 
     def _get_mocked_flow_stats(self):
         """Helper method to create a mock flow_stats object."""
