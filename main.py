@@ -5,9 +5,9 @@ This NApp does operations with flows not covered by Kytos itself.
 # pylint: disable=too-many-return-statements,too-many-instance-attributes
 # pylint: disable=too-many-arguments,too-many-branches,too-many-statements
 
-from flask import jsonify, request
 from kytos.core import KytosNApp, log, rest
 from kytos.core.helpers import listen_to
+from kytos.core.rest_api import HTTPException, JSONResponse, Request
 
 
 # pylint: disable=too-many-public-methods
@@ -59,63 +59,66 @@ class Main(KytosNApp):
         return flow_stats_by_id
 
     @rest('v1/flow/stats')
-    def flow_stats(self):
+    def flow_stats(self, request: Request) -> JSONResponse:
         """Return the flows stats by dpid.
         Return the stats of all flows if dpid is None
         """
-        args = request.args
-        dpids = args.getlist("dpid", type=str)
+        dpids = request.query_params.getlist("dpid")
         if len(dpids) == 0:
             dpids = [sw.dpid for sw in self.controller.switches.values()]
         flow_stats_by_id = self.flow_stats_by_dpid_flow_id(dpids)
-        return jsonify(flow_stats_by_id)
+        return JSONResponse(flow_stats_by_id)
 
-    @rest('v1/packet_count/<flow_id>')
-    def packet_count(self, flow_id):
+    @rest('v1/packet_count/{flow_id}')
+    def packet_count(self, request: Request) -> JSONResponse:
         """Packet count of an specific flow."""
+        flow_id = request.path_params["flow_id"]
         flow = self.flow_from_id(flow_id)
         if flow is None:
-            return "Flow does not exist", 404
+            raise HTTPException(404, detail="Flow does not exist")
         packet_stats = {
             'flow_id': flow_id,
             'packet_counter': flow.stats.packet_count,
             'packet_per_second':
                 flow.stats.packet_count / flow.stats.duration_sec
             }
-        return jsonify(packet_stats)
+        return JSONResponse(packet_stats)
 
-    @rest('v1/bytes_count/<flow_id>')
-    def bytes_count(self, flow_id):
+    @rest('v1/bytes_count/{flow_id}')
+    def bytes_count(self, request: Request) -> JSONResponse:
         """Bytes count of an specific flow."""
+        flow_id = request.path_params["flow_id"]
         flow = self.flow_from_id(flow_id)
         if flow is None:
-            return "Flow does not exist", 404
+            raise HTTPException(404, detail="Flow does not exist")
         bytes_stats = {
             'flow_id': flow_id,
             'bytes_counter': flow.stats.byte_count,
             'bits_per_second':
                 flow.stats.byte_count * 8 / flow.stats.duration_sec
             }
-        return jsonify(bytes_stats)
+        return JSONResponse(bytes_stats)
 
-    @rest('v1/packet_count/per_flow/<dpid>')
-    def packet_count_per_flow(self, dpid):
+    @rest('v1/packet_count/per_flow/{dpid}')
+    def packet_count_per_flow(self, request: Request) -> JSONResponse:
         """Per flow packet count."""
+        dpid = request.path_params["dpid"]
         return self.flows_counters('packet_count',
                                    dpid,
                                    counter='packet_counter',
                                    rate='packet_per_second')
 
-    @rest('v1/bytes_count/per_flow/<dpid>')
-    def bytes_count_per_flow(self, dpid):
+    @rest('v1/bytes_count/per_flow/{dpid}')
+    def bytes_count_per_flow(self, request: Request) -> JSONResponse:
         """Per flow bytes count."""
+        dpid = request.path_params["dpid"]
         return self.flows_counters('byte_count',
                                    dpid,
                                    counter='bytes_counter',
                                    rate='bits_per_second')
 
     def flows_counters(self, field, dpid, counter=None, rate=None,
-                       total=False):
+                       total=False) -> JSONResponse:
         """Calculate flows statistics.
         The returned statistics are both per flow and for the sum of flows
         """
@@ -135,7 +138,7 @@ class Main(KytosNApp):
         flows = flows.get(dpid)
 
         if flows is None:
-            return jsonify(count_flows)
+            return JSONResponse(count_flows)
         for flow_id, stats in flows.items():
             count = stats[field]
             if total:
@@ -147,7 +150,7 @@ class Main(KytosNApp):
                 count_flows.append({'flow_id': flow_id,
                                     counter: count,
                                     rate: per_second})
-        return jsonify(count_flows)
+        return JSONResponse(count_flows)
 
     @listen_to('kytos/of_core.flow_stats.received')
     def on_stats_received(self, event):
