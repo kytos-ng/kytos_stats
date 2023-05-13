@@ -6,7 +6,7 @@ from kytos.lib.helpers import (
     get_kytos_event_mock,
     get_switch_mock,
 )
-from napps.amlight.flow_stats.main import Main
+from napps.amlight.kytos_stats.main import Main
 
 
 # pylint: disable=too-many-public-methods, too-many-lines
@@ -18,12 +18,13 @@ class TestMain:
         controller = get_controller_mock()
         self.napp = Main(controller)
         self.api_client = get_test_client(controller, self.napp)
-        self.base_endpoint = "amlight/flow_stats/v1"
+        self.base_endpoint = "amlight/kytos_stats/v1"
 
     def test_get_event_listeners(self):
         """Verify all event listeners registered."""
         expected_events = [
-            'kytos/of_core.flow_stats.received'
+            'kytos/of_core.flow_stats.received',
+            'kytos/of_core.table_stats.received'
         ]
         actual_events = self.napp.listeners()
 
@@ -68,7 +69,7 @@ class TestMain:
         assert response.status_code == 404
         assert response.json()["description"] == "Flow does not exist"
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_from_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_from_id")
     async def test_packet_count(self, mock_from_flow):
         """Test packet_count rest call."""
         flow_id = '1'
@@ -91,7 +92,7 @@ class TestMain:
         assert response.status_code == 404
         assert response.json()["description"] == "Flow does not exist"
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_from_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_from_id")
     async def test_bytes_count(self, mock_from_flow):
         """Test bytes_count rest call."""
         flow_id = '1'
@@ -114,7 +115,7 @@ class TestMain:
         assert response.status_code == 200
         assert len(response.json()) == 0
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_packet_count_per_flow(self, mock_from_flow):
         """Test packet_count_per_flow rest call."""
         flow_info = {
@@ -149,7 +150,7 @@ class TestMain:
         assert response.status_code == 200
         assert len(response.json()) == 0
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_bytes_count_per_flow(self, mock_from_flow):
         """Test bytes_count_per_flow rest call."""
         flow_info = {
@@ -178,7 +179,7 @@ class TestMain:
         assert json_response[0]["bytes_counter"] == 10
         assert json_response[0]["bits_per_second"] == 4.0
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_flows_counters_packet(self, mock_from_flow):
         """Test flows_counters function for packet"""
         flow_info = {
@@ -201,7 +202,7 @@ class TestMain:
         assert response.status_code == 200
         assert len(response.json()) == 1
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_flows_counters_bytes(self, mock_from_flow):
         """Test flows_counters function for bytes"""
         flow_info = {
@@ -224,7 +225,7 @@ class TestMain:
         assert response.status_code == 200
         assert len(response.json()) == 1
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_flow_stats_by_dpid_flow_id(self, mock_from_flow):
         """Test flow_stats rest call."""
         flow_info = {
@@ -247,7 +248,7 @@ class TestMain:
         expected = flow_by_sw
         assert response.json() == expected
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_flow_stats_by_dpid_flow_id_without_dpid(self,
                                                            mock_from_flow):
         """Test flow_stats rest call."""
@@ -272,7 +273,7 @@ class TestMain:
         expected = flow_by_sw
         assert response.json() == expected
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_flow_stats_by_dpid_flow_id_with_dpid(self, mock_from_flow):
         """Test flow_stats rest call."""
         flow_info = {
@@ -296,11 +297,65 @@ class TestMain:
         expected = flow_by_sw
         assert response.json() == expected
 
-    @patch("napps.amlight.flow_stats.main.Main.flow_stats_by_dpid_flow_id")
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_flow_stats_by_dpid_flow_id_not_found(self, mock_from_flow):
         """Test flow_stats rest call."""
         flow_by_sw = {}
         mock_from_flow.return_value = flow_by_sw
+        endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
+        assert response.status_code == 200
+        assert len(response.json()) == 0
+
+    @patch("napps.amlight.kytos_stats.main.Main.table_stats_by_dpid_table_id")
+    async def test_table_stats_by_dpid_table_id(self, mock_from_table):
+        """Test table_stats rest call."""
+        table_info = {
+            "table_id": 10,
+            "active_count": 20,
+            "lookup_count": 30,
+            "matched_count": 32768
+            }
+        table_stats_dict_mock = {'10': table_info}
+        table_by_sw = {"00:00:00:00:00:00:00:01": table_stats_dict_mock}
+        mock_from_table.return_value = table_by_sw
+
+        endpoint = "/table/stats?dpid=00:00:00:00:00:00:00:01&table=10"
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
+        assert response.status_code == 200
+        expected = table_by_sw
+        assert response.json() == expected
+
+    @patch("napps.amlight.kytos_stats.main.Main.table_stats_by_dpid_table_id")
+    async def test_table_stats_by_dpid_table_id_without_dpid(self,
+                                                             mock_from_table):
+        """Test table_stats rest call."""
+        table_info = {
+            "table_id": 10,
+            "active_count": 20,
+            "lookup_count": 30,
+            "matched_count": 32768
+            }
+        table_stats_dict_mock = {'10': table_info}
+        table_by_sw = {"00:00:00:00:00:00:00:01": table_stats_dict_mock}
+        mock_from_table.return_value = table_by_sw
+
+        endpoint = "/table/stats"
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
+        assert response.status_code == 200
+
+        expected = table_by_sw
+        assert response.json() == expected
+
+    @patch("napps.amlight.kytos_stats.main.Main.table_stats_by_dpid_table_id")
+    async def test_table_stats_by_dpid_table_id_not_found(self,
+                                                          mock_from_table):
+        """Test table_stats rest call."""
+        table_by_sw = {}
+        mock_from_table.return_value = table_by_sw
         endpoint = "/flow/stats?dpid=00:00:00:00:00:00:00:01"
         url = f"{self.base_endpoint}{endpoint}"
         response = await self.api_client.get(url)
@@ -337,6 +392,17 @@ class TestMain:
         replies_flows = [flow]
         return replies_flows
 
+    def _get_mocked_multipart_replies_tables(self):
+        """Helper method to create mock multipart replies tables"""
+        table = MagicMock()
+        table.table_id = 10
+        table.active_count = 0
+        table.lookup_count = 0
+        table.matched_count = 0
+
+        replies_tables = [table]
+        return replies_tables
+
     def _get_mocked_flow_base(self):
         """Helper method to create a mock flow object."""
         flow = MagicMock()
@@ -351,7 +417,7 @@ class TestMain:
         flow.stats = self._get_mocked_flow_stats()
         return flow
 
-    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply_received")
+    @patch("napps.amlight.kytos_stats.main.Main.handle_stats_reply_received")
     def test_handle_stats_received(self, mock_handle_stats):
         """Test handle_stats_received function."""
 
@@ -365,7 +431,7 @@ class TestMain:
         self.napp.handle_stats_received(event)
         mock_handle_stats.assert_called_once()
 
-    @patch("napps.amlight.flow_stats.main.Main.handle_stats_reply_received")
+    @patch("napps.amlight.kytos_stats.main.Main.handle_stats_reply_received")
     def test_handle_stats_received__fail(self, mock_handle_stats):
         """Test handle_stats_received function for
         fail when replies_flows is not in content."""
@@ -386,3 +452,25 @@ class TestMain:
         self.napp.handle_stats_reply_received(flows_mock)
 
         assert list(self.napp.flows_stats_dict.values())[0].id == 456
+
+    @patch("napps.amlight.kytos_stats.main.Main.handle_table_stats_received")
+    def test_handle_table_stats_received(self, mock_handle_stats):
+        """Test handle_table_stats_received function."""
+
+        switch_v0x04 = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        replies_tables = self._get_mocked_multipart_replies_tables()
+        name = "kytos/of_core.table_stats.received"
+        content = {"switch": switch_v0x04, "replies_tables": replies_tables}
+
+        event = get_kytos_event_mock(name=name, content=content)
+
+        self.napp.handle_table_stats_received(event)
+        mock_handle_stats.assert_called_once()
+
+    def test_handle_table_stats_reply_received(self):
+        """Test handle_table_stats_reply_received call."""
+
+        tables_mock = self._get_mocked_multipart_replies_tables()
+        self.napp.handle_table_stats_reply_received(tables_mock)
+        table = list(self.napp.tables_stats_dict.values())[0]
+        assert list(table.keys())[0] == 10

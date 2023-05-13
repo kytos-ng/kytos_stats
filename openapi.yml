@@ -1,10 +1,10 @@
 openapi: 3.0.0
 info:
-  title: amlight/flow_stats
+  title: amlight/kytos_stats
   version: v1
   description: Flow structures and statistics
 paths:
-  /api/amlight/flow_stats/v1/flow/stats:
+  /api/amlight/kytos_stats/v1/flow/stats:
     get:
       tags:
         - object
@@ -63,7 +63,62 @@ paths:
                             example: 32768
                           match:
                             type: object
-  /api/amlight/flow_stats/v1/packet_count/{flow_id}:
+  /api/amlight/kytos_stats/v1/table/stats:
+    get:
+      tags:
+        - object
+      summary: Return table stats.
+      description: Return the stats of tables given a list of dpids and optionally table_id.
+      parameters:  
+        - name: dpid
+          schema:
+            type: array
+            items:
+              type: string
+          description: List of switch ids
+          required: false
+          in: query
+          example: ["00:00:00:00:00:00:00:01","00:00:00:00:00:00:00:02"]  
+        - name: table
+          schema:
+            type: array
+            items:
+              type: string
+          description: List of table ids
+          required: false
+          in: query
+          example: ["0", "1"]  
+      responses:
+        200:  
+          description: Describe a successful call.
+          content:
+            application/json:  
+              schema:
+                type: object
+                properties:
+                  switch: 
+                    type: object
+                    properties:
+                      table:
+                        type: object
+                        properties:
+                          table_id:
+                            type: integer
+                            format: int8
+                            example: 0
+                          active_count:
+                            type: integer
+                            format: int32
+                            example: 0
+                          lookup_count:
+                            type: integer
+                            format: int64
+                            example: 0
+                          matched_count:
+                            type: integer
+                            format: int64
+                            example: 0
+  /api/amlight/kytos_stats/v1/packet_count/{flow_id}:
     get:
       summary: Packet count of an specific flow.
       description: Counters of a flow.
@@ -101,7 +156,7 @@ paths:
               schema:
                 type: string
                 example: Flow not found
-  /api/amlight/flow_stats/v1/bytes_count/{flow_id}:
+  /api/amlight/kytos_stats/v1/bytes_count/{flow_id}:
     get:
       summary: Bytes count of an specific flow.
       description: Counter per byte of a flow.
@@ -139,7 +194,7 @@ paths:
               schema:
                 type: string
                 example: Flow not found
-  /api/amlight/flow_stats/v1/packet_count/per_flow/{dpid}:
+  /api/amlight/kytos_stats/v1/packet_count/per_flow/{dpid}:
     get:
       summary: Per flow packet count.
       description: Packet count per flow of a switch
@@ -179,7 +234,7 @@ paths:
               schema:
                 type: string
                 example: Switch not found
-  /api/amlight/flow_stats/v1/bytes_count/per_flow/{dpid}:
+  /api/amlight/kytos_stats/v1/bytes_count/per_flow/{dpid}:
     get:
       summary: Per flow bytes count.
       description: Bytes count per flow of a switch

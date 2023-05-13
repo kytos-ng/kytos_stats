@@ -1,4 +1,4 @@
-"""Main module of amlight/flow_stats Kytos Network Application.
+"""Main module of amlight/kytos_stats Kytos Network Application.
 
 This NApp does operations with flows not covered by Kytos itself.
 """
@@ -12,7 +12,7 @@ from kytos.core.rest_api import HTTPException, JSONResponse, Request
 
 # pylint: disable=too-many-public-methods
 class Main(KytosNApp):
-    """Main class of amlight/flow_stats NApp.
+    """Main class of amlight/kytos_stats NApp.
     This class is the entry point for this napp.
     """
 
@@ -24,6 +24,7 @@ class Main(KytosNApp):
         """
         log.info('Starting Kytos/Amlight flow manager')
         self.flows_stats_dict = {}
+        self.tables_stats_dict = {}
 
     def execute(self):
         """This method is executed right after the setup method execution.
@@ -58,6 +59,24 @@ class Main(KytosNApp):
                 flow_stats_by_id[dpid].update({flow_id: info_flow_as_dict})
         return flow_stats_by_id
 
+    def table_stats_by_dpid_table_id(self, dpids, table_ids):
+        """ Auxiliar funcion for v1/table/stats endpoint implementation.
+        """
+        table_stats_by_id = {}
+        tables_stats_dict_copy = self.tables_stats_dict.copy()
+        for dpid_dict, tables in tables_stats_dict_copy.items():
+            if dpid_dict not in dpids:
+                continue
+            table_stats_by_id[dpid_dict] = {}
+            if len(table_ids) == 0:
+                table_ids = list(tables.keys())
+            for _id, table in tables.items():
+                if _id in table_ids:
+                    table_dict = table.as_dict()
+                    del table_dict['switch']
+                    table_stats_by_id[dpid_dict].update({_id: table_dict})
+        return table_stats_by_id
+
     @rest('v1/flow/stats')
     def flow_stats(self, request: Request) -> JSONResponse:
         """Return the flows stats by dpid.
@@ -68,6 +87,19 @@ class Main(KytosNApp):
             dpids = [sw.dpid for sw in self.controller.switches.values()]
         flow_stats_by_id = self.flow_stats_by_dpid_flow_id(dpids)
         return JSONResponse(flow_stats_by_id)
+
+    @rest('v1/table/stats')
+    def table_stats(self, request: Request) -> JSONResponse:
+        """Return the table stats by dpid,
+        and optionally by table_id.
+        """
+        dpids = request.query_params.getlist("dpid")
+        if len(dpids) == 0:
+            dpids = [sw.dpid for sw in self.controller.switches.values()]
+        table_ids = request.query_params.getlist("table")
+        table_ids = list(map(int, table_ids))
+        table_stats_dpid = self.table_stats_by_dpid_table_id(dpids, table_ids)
+        return JSONResponse(table_stats_dpid)
 
     @rest('v1/packet_count/{flow_id}')
     def packet_count(self, request: Request) -> JSONResponse:
@@ -166,3 +198,22 @@ class Main(KytosNApp):
     def handle_stats_reply_received(self, replies_flows):
         """Update the set of flows stats"""
         self.flows_stats_dict.update({flow.id: flow for flow in replies_flows})
+
+    @listen_to('kytos/of_core.table_stats.received')
+    def on_table_stats_received(self, event):
+        """Capture table stats messages for OpenFlow 1.3."""
+        self.handle_table_stats_received(event)
+
+    def handle_table_stats_received(self, event):
+        """Handle table stats messages for OpenFlow 1.3."""
+        if 'replies_tables' in event.content:
+            replies_tables = event.content['replies_tables']
+            self.handle_table_stats_reply_received(replies_tables)
+
+    def handle_table_stats_reply_received(self, replies_tables):
+        """Update the set of tables stats"""
+        for table in replies_tables:
+            switch_id = table.switch.id
+            if switch_id not in self.tables_stats_dict:
+                self.tables_stats_dict[switch_id] = {}
+            self.tables_stats_dict[switch_id][table.table_id] = table

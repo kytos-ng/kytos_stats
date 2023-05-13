@@ -22,7 +22,7 @@ if 'bdist_wheel' in sys.argv:
 # Paths setup with virtualenv detection
 BASE_ENV = Path(os.environ.get('VIRTUAL_ENV', '/'))
 
-NAPP_NAME = 'flow_stats'
+NAPP_NAME = 'kytos_stats'
 NAPP_USERNAME = 'amlight'
 
 # Kytos var folder
@@ -266,8 +266,8 @@ def read_requirements(path="requirements/run.txt"):
 
 setup(name=f'{NAPP_USERNAME}_{NAPP_NAME}',
       version=read_version_from_json(),
-      description='Store flow information and show statistics about them.',
-      url='http://github.com/kytos-ng/flow_stats',
+      description='Show statistics about flows and tables.',
+      url='http://github.com/kytos-ng/kytos_stats',
       author='FIU/AmLight team',
       author_email='ops@amlight.net',
       license='MIT',
