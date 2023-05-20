@@ -54,7 +54,7 @@ Subscribed
 
 .. |Stable| image:: https://img.shields.io/badge/stability-stable-green.svg
    :target: https://github.com/kytos-ng/kytos_stats
-.. |License| image:: https://img.shields.io/github/license/amlight/kytos_stats.svg
+.. |License| image:: https://img.shields.io/github/license/kytos-ng/kytos_stats.svg
    :target: https://github.com/kytos-ng/kytos_stats/blob/master/LICENSE
 .. |Build| image:: https://scrutinizer-ci.com/g/kytos-ng/kytos_stats/badges/build.png?b=master
   :alt: Build status
@@ -65,7 +65,7 @@ Subscribed
 .. |Quality| image:: https://scrutinizer-ci.com/g/kytos-ng/kytos_stats/badges/quality-score.png?b=master
   :alt: Code-quality score
   :target: https://scrutinizer-ci.com/g/kytos-ng/kytos_stats/?branch=master
-.. |Tag| image:: https://img.shields.io/github/tag/amlight/kytos_stats.svg
+.. |Tag| image:: https://img.shields.io/github/tag/kytos-ng/kytos_stats.svg
    :target: https://github.com/kytos-ng/kytos_stats/tags
 
 
