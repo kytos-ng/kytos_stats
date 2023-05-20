@@ -64,17 +64,17 @@ class Main(KytosNApp):
         """
         table_stats_by_id = {}
         tables_stats_dict_copy = self.tables_stats_dict.copy()
-        for dpid_dict, tables in tables_stats_dict_copy.items():
-            if dpid_dict not in dpids:
+        for dpid, tables in tables_stats_dict_copy.items():
+            if dpid not in dpids:
                 continue
-            table_stats_by_id[dpid_dict] = {}
+            table_stats_by_id[dpid] = {}
             if len(table_ids) == 0:
                 table_ids = list(tables.keys())
-            for _id, table in tables.items():
-                if _id in table_ids:
+            for table_id, table in tables.items():
+                if table_id in table_ids:
                     table_dict = table.as_dict()
                     del table_dict['switch']
-                    table_stats_by_id[dpid_dict].update({_id: table_dict})
+                    table_stats_by_id[dpid][table_id] = table_dict
         return table_stats_by_id
 
     @rest('v1/flow/stats')
@@ -206,9 +206,8 @@ class Main(KytosNApp):
 
     def handle_table_stats_received(self, event):
         """Handle table stats messages for OpenFlow 1.3."""
-        if 'replies_tables' in event.content:
-            replies_tables = event.content['replies_tables']
-            self.handle_table_stats_reply_received(replies_tables)
+        replies_tables = event.content['replies_tables']
+        self.handle_table_stats_reply_received(replies_tables)
 
     def handle_table_stats_reply_received(self, replies_tables):
         """Update the set of tables stats"""
