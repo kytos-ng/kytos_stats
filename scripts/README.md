@@ -52,7 +52,7 @@ optional arguments:
   -o {1,2,3,4,5,6}, --monitoring_option {1,2,3,4,5,6}
                         Monitoring option: 1 - for monitor nodes, 2 - for
                         monitor links, 3 - for monitor evcs (status), 4 - evc
-                        statistics, 5 - OpenFlow flows stats, 5 - OpenFlow tables stats
+                        statistics, 5 - OpenFlow flows stats, 6 - OpenFlow tables stats
   -t TARGET, --target TARGET
                         Item status (0-down/others, 1-disabled, 2-up/primary,
                         3-up/backup). Argument is the item id to be monitored
