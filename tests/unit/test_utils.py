@@ -1,7 +1,7 @@
 """Module to test the utils.py file."""
 from unittest import TestCase
 
-from napps.amlight.flow_stats.utils import (
+from napps.amlight.kytos_stats.utils import (
     IPv4AddressWithMask, IPv6AddressWithMask)
 
 

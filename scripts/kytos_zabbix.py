@@ -9,6 +9,7 @@
      - 2020/12/10 - Creating the script for monitoring items of Kytos similar to oess_zabbix.py
      - 2020/12/15 - adding option to export EVC statistics (bytes and packets)
      - 2022/11/30 - bug fixes and integration with kytos-ng/flow_stats rather than flow_manager
+     - 2023/05/11 - integration with kytos-ng/kytos_stats rather than flow_stats
 
 """
 
@@ -28,6 +29,7 @@ cache = {
  3: CACHE_DIR + '/evcs.json',
  4: CACHE_DIR + '/flows.json',
  5: CACHE_DIR + '/flows.json',
+ 6: CACHE_DIR + '/tables.json',
 }
 
 help_msg = "Kytos wrapper for Zabbix"
@@ -39,7 +41,7 @@ parser.add_argument("-p", "--pass", dest="password", help="Password to authentic
 parser.add_argument("-f", "--authfile", dest="authfile", help="Authentication file containing username (first line) and password (second line) to authenticate into Kytos API")
 parser.add_argument("-T", "--timeout", dest="timeout", type=int, help="You can tell Requests to stop waiting for a response after a given number of seconds", default=5)
 parser.add_argument("-c", "--cache_policy", dest="cache_policy", default=60, help="Cache policy: never, always or X seconds (default to cache for 600 seconds)")
-parser.add_argument("-o", "--monitoring_option", dest="option", type=int, default=1, choices=[1, 2, 3, 4, 5], help="Monitoring option: 1 - for monitor nodes, 2 - for monitor links, 3 - for monitor evcs (status), 4 - evc statistics, 5 - OpenFlow flows stats")
+parser.add_argument("-o", "--monitoring_option", dest="option", type=int, default=1, choices=[1, 2, 3, 4, 5, 6], help="Monitoring option: 1 - for monitor nodes, 2 - for monitor links, 3 - for monitor evcs (status), 4 - evc statistics, 5 - OpenFlow flows stats, 6 - OpenFlow tables stats")
 parser.add_argument("-t", "--target", dest="target", help="Item status (0-down/others, 1-disabled, 2-up/primary, 3-up/backup). Argument is the item id to be monitored (depending on the -o option).")
 parser.add_argument("-z", "--zabbix_output", dest="count_output", type=int, choices=[1, 2], help="Zabbix LLD: (1) Count number of lines in each output or (2) list-only registers", default=None)
 parser.add_argument("-s", "--stats", dest="stats", type=int, default=1, choices=[1, 2, 3, 4], help="EVC statistics type: 1 - bytes/UNI_A, 2 - bytes/UNI_Z , 3 - packets/UNI_A, 4 - packets/UNI_Z")
@@ -106,7 +108,9 @@ def get_kytos_data(url, option):
     elif option == 3:
         API_ENDPOINT="/kytos/mef_eline/v2/evc"
     elif option in [4,5]:
-        API_ENDPOINT="/amlight/flow_stats/v1/flow/stats"
+        API_ENDPOINT="/amlight/kytos_stats/v1/flow/stats"
+    elif option in [6]:
+        API_ENDPOINT="/amlight/kytos_stats/v1/table/stats"
 
     data = get_data(option, url + API_ENDPOINT)
     try:
@@ -153,7 +157,7 @@ def print_target_results(data, option, target):
         else:
             print("0")
 
-def print_flow_stats(data, target):
+def print_kytos_stats(data, target):
     if target:
         print(len(data.get(target, [])))
     else:
@@ -214,8 +218,8 @@ data = get_kytos_data(args.url, args.option)
 
 if args.option == 4:
     print_stats(data, args.target, args.stats)
-elif args.option == 5:
-    print_flow_stats(data, args.target)
+elif args.option in [5, 6]:
+    print_kytos_stats(data, args.target)
 elif args.target:
     print_target_results(data, args.option, args.target)
 elif args.count_output == 1:

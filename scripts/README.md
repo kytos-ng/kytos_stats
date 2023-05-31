@@ -1,6 +1,6 @@
-## Flow_stats's scripts
+## Kytos_stats's scripts
 
-This folder contains Flow_stats's related scripts.
+This folder contains Kytos_stats's related scripts.
 
 ### Integration Kytos-ng and Zabbix for Monitoring
 
@@ -9,7 +9,7 @@ This folder contains Flow_stats's related scripts.
 #### Pre-requisites
 
 - There's no additional Python libraries dependencies required (the libs we use are usually installed by default).
-- Make sure your Kytos server is running and allowing requests on the Napp `flow_stats`, `mef_eline` and `topology` (via HTTP GET method).
+- Make sure your Kytos server is running and allowing requests on the Napp `kytos_stats`, `mef_eline` and `topology` (via HTTP GET method).
 - When using authentication (recommended), you will have three options to provide the credentials: via command line parameters (unsafe) `--user` and `--pass`; via a file in the filesystem (`--passfile`) which contains the username in the first line and the password in the second line (you can change the permissions of the file to restrict access); via environment variables, such as:
 - Export  related variables that [kytos_zabbix.py](scripts/kytos_zabbix.py) optionally uses
 
@@ -49,10 +49,10 @@ optional arguments:
   -c CACHE_POLICY, --cache_policy CACHE_POLICY
                         Cache policy: never, always or X seconds (default to
                         cache for 600 seconds)
-  -o {1,2,3,4,5}, --monitoring_option {1,2,3,4,5}
+  -o {1,2,3,4,5,6}, --monitoring_option {1,2,3,4,5,6}
                         Monitoring option: 1 - for monitor nodes, 2 - for
                         monitor links, 3 - for monitor evcs (status), 4 - evc
-                        statistics, 5 - OpenFlow flows stats
+                        statistics, 5 - OpenFlow flows stats, 6 - OpenFlow tables stats
   -t TARGET, --target TARGET
                         Item status (0-down/others, 1-disabled, 2-up/primary,
                         3-up/backup). Argument is the item id to be monitored
