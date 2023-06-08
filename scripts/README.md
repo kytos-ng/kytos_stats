@@ -120,6 +120,8 @@ Get byte count for a specific EVC:
 22594175814
 ```
 
+Get tables statistics:
+
 ```
 # /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01
 254 ## Number of tables in switch01
@@ -128,7 +130,7 @@ Get byte count for a specific EVC:
 # /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::2000
 0 ## No table with this id
 # /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::0 -s 5
-{'0': 28} ## active count in table 1
+{'0': 28} ## active count in table 0
 # /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::2000 -s 5
 {} ## No table with this id
 # /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01 -s 5
