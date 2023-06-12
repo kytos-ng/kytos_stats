@@ -22,7 +22,7 @@ export KYTOS_PASSWORD=changeme123
 
 #### How to use
 
-The `kytos_zabbix.py` script has a few monitoring capabilities, such as the monitoring option `-o`: 1 - status of switches; 2 - status of links; 3 - status of EVCs; 4 - statistics of EVCs. You can filter by the target to be monitored by using the option `-t` (target), example: to get the status of switch01 (dpid 00:00:00:00:00:00:00:01) one would use `-o 1 -t 00:00:00:00:00:00:00:01`. Furthermore, when collecting statistics for EVCs, you can filter by (option `-s`): 1 - bytes/UNI_A, 2 - bytes/UNI_Z , 3 - packets/UNI_A, 4 - packets/UNI_Z.
+The `kytos_zabbix.py` script has a few monitoring capabilities, such as the monitoring option `-o`: 1 - status of switches; 2 - status of links; 3 - status of EVCs; 4 - statistics of EVCs. You can filter by the target to be monitored by using the option `-t` (target), example: to get the status of switch01 (dpid 00:00:00:00:00:00:00:01) one would use `-o 1 -t 00:00:00:00:00:00:00:01`. To get status of table 1 of switch01 one would use `-o 6 -t 00:00:00:00:00:00:00:01::1`. Furthermore, when collecting statistics for EVCs, you can filter by (option `-s`): 1 - bytes/UNI_A, 2 - bytes/UNI_Z , 3 - packets/UNI_A, 4 - packets/UNI_Z.
 
 Here is the complete help and options:
 
@@ -60,9 +60,10 @@ optional arguments:
   -z {1,2}, --zabbix_output {1,2}
                         Zabbix LLD: (1) Count number of lines in each output
                         or (2) list-only registers
-  -s {1,2,3,4}, --stats {1,2,3,4}
+  -s {1,2,3,4, 5}, --stats {1,2,3,4}
                         EVC statistics type: 1 - bytes/UNI_A, 2 - bytes/UNI_Z
                         , 3 - packets/UNI_A, 4 - packets/UNI_Z
+                        Table statistics type: 5 - active count, default - number of tables
 ```
 
 Examples:
@@ -117,6 +118,23 @@ Get byte count for a specific EVC:
 22594145833
 # /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 4 -t db608c96f05940 -s 2
 22594175814
+```
+
+Get tables statistics:
+
+```
+# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01
+254 ## Number of tables in switch01
+# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::0
+1 ## 1 table
+# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::2000
+0 ## No table with this id
+# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::0 -s 5
+{'0': 28} ## active count in table 0
+# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::2000 -s 5
+{} ## No table with this id
+# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01 -s 5
+{'0': 28, '1': 0, ..., '253': 0} ## in all tables
 ```
 
 Leveraging the above functions you can create a Zabbix template and dashboards to better monitor your Kytos-ng instance! At AmLight/FIU we have created our Kytos template for zabbix and some dashboards, please [`contact us`](https://www.amlight.net) if you are interested.

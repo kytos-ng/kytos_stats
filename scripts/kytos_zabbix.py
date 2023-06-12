@@ -44,7 +44,7 @@ parser.add_argument("-c", "--cache_policy", dest="cache_policy", default=60, hel
 parser.add_argument("-o", "--monitoring_option", dest="option", type=int, default=1, choices=[1, 2, 3, 4, 5, 6], help="Monitoring option: 1 - for monitor nodes, 2 - for monitor links, 3 - for monitor evcs (status), 4 - evc statistics, 5 - OpenFlow flows stats, 6 - OpenFlow tables stats")
 parser.add_argument("-t", "--target", dest="target", help="Item status (0-down/others, 1-disabled, 2-up/primary, 3-up/backup). Argument is the item id to be monitored (depending on the -o option).")
 parser.add_argument("-z", "--zabbix_output", dest="count_output", type=int, choices=[1, 2], help="Zabbix LLD: (1) Count number of lines in each output or (2) list-only registers", default=None)
-parser.add_argument("-s", "--stats", dest="stats", type=int, default=1, choices=[1, 2, 3, 4], help="EVC statistics type: 1 - bytes/UNI_A, 2 - bytes/UNI_Z , 3 - packets/UNI_A, 4 - packets/UNI_Z")
+parser.add_argument("-s", "--stats", dest="stats", type=int, default=1, choices=[1, 2, 3, 4, 5], help="EVC statistics type: 1 - bytes/UNI_A, 2 - bytes/UNI_Z , 3 - packets/UNI_A, 4 - packets/UNI_Z. Table statistics type: 5 - active count, default - number of tables")
 
 args = parser.parse_args()
 
@@ -59,7 +59,7 @@ if args.authfile:
     args.password = authdata[1].strip()
 
 args.url = os.environ.get("KYTOS_URL", args.url)
-args.timeout = os.environ.get("KYTOS_TIMEOUT", args.timeout)
+args.timeout = int(os.environ.get("KYTOS_TIMEOUT", args.timeout))
 args.username = os.environ.get("KYTOS_USERNAME", args.username)
 args.password = os.environ.get("KYTOS_PASSWORD", args.password)
 
@@ -157,9 +157,31 @@ def print_target_results(data, option, target):
         else:
             print("0")
 
-def print_kytos_stats(data, target):
+def print_flow_stats(data, target):
     if target:
         print(len(data.get(target, [])))
+    else:
+        l = 0
+        for s in data:
+            l+= len(data[s])
+        print(l)
+
+def print_tables_stats(data, target, stats_type):
+    if target:
+        split = target.split('::')
+        dpid = split[0]
+        tables = data.get(dpid, [])
+        if len(split) > 1:
+            table_id = split[1]
+            if table_id in tables:
+                tables = {table_id: tables.get(table_id)} 
+            else:
+                tables = {} 
+        if stats_type != 5:
+            print(len(tables))
+        else:             
+            stats = {table_id:table.get('active_count') for table_id, table in tables.items()}
+            print(stats)  
     else:
         l = 0
         for s in data:
@@ -218,8 +240,10 @@ data = get_kytos_data(args.url, args.option)
 
 if args.option == 4:
     print_stats(data, args.target, args.stats)
-elif args.option in [5, 6]:
-    print_kytos_stats(data, args.target)
+elif args.option == 5:
+    print_flow_stats(data, args.target)
+elif args.option == 6:
+    print_tables_stats(data, args.target, args.stats)
 elif args.target:
     print_target_results(data, args.option, args.target)
 elif args.count_output == 1:
