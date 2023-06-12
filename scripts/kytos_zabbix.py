@@ -157,7 +157,7 @@ def print_target_results(data, option, target):
         else:
             print("0")
 
-def print_flow_stats(data, target):    
+def print_flow_stats(data, target):
     if target:
         print(len(data.get(target, [])))
     else:
