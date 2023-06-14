@@ -8,7 +8,7 @@ All notable changes to the kytos_stats NApp will be documented in this file.
 Added
 =====
 - Event ``kytos/of_core.table_stats.received``.
-- Update `scripts/kytos_zabbix.py` script to add table stats.
+- Update ``scripts/kytos_zabbix.py`` script to add table stats. In particular, ``zabbix_wrapper`` prints the ``active_count`` field, which is used for capacity planning.
 - Add GET ``v1/table/stats`` endpoint to listing table stats by dpid.
 
 Changed
