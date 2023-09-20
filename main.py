@@ -108,11 +108,15 @@ class Main(KytosNApp):
         flow = self.flow_from_id(flow_id)
         if flow is None:
             raise HTTPException(404, detail="Flow does not exist")
+        try:
+            packet_per_second = \
+                flow.stats.packet_count / flow.stats.duration_sec
+        except ZeroDivisionError:
+            packet_per_second = 0
         packet_stats = {
             'flow_id': flow_id,
             'packet_counter': flow.stats.packet_count,
-            'packet_per_second':
-                flow.stats.packet_count / flow.stats.duration_sec
+            'packet_per_second': packet_per_second
             }
         return JSONResponse(packet_stats)
 
@@ -123,11 +127,15 @@ class Main(KytosNApp):
         flow = self.flow_from_id(flow_id)
         if flow is None:
             raise HTTPException(404, detail="Flow does not exist")
+        try:
+            bits_per_second = \
+                flow.stats.byte_count * 8 / flow.stats.duration_sec
+        except ZeroDivisionError:
+            bits_per_second = 0
         bytes_stats = {
             'flow_id': flow_id,
             'bytes_counter': flow.stats.byte_count,
-            'bits_per_second':
-                flow.stats.byte_count * 8 / flow.stats.duration_sec
+            'bits_per_second': bits_per_second
             }
         return JSONResponse(bytes_stats)
 
@@ -176,7 +184,10 @@ class Main(KytosNApp):
             if total:
                 count_flows += count
             else:
-                per_second = count / stats['duration_sec']
+                try:
+                    per_second = count / stats['duration_sec']
+                except ZeroDivisionError:
+                    per_second = 0
                 if rate.startswith('bits'):
                     per_second *= 8
                 count_flows.append({'flow_id': flow_id,
