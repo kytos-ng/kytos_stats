@@ -22,6 +22,7 @@ Removed
 
 Fixed
 =====
+- Fixed error due to division by zero when ``duration_sec` is zero in the ``stats`` of a flow.
 
 Security
 ========
