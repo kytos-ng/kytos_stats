@@ -15,6 +15,22 @@ Added
 - Update ``scripts/kytos_zabbix.py`` script to add table stats. In particular, ``zabbix_wrapper`` prints the ``active_count`` field, which is used for capacity planning.
 - Add GET ``v1/table/stats`` endpoint to listing table stats by dpid.
 
+Changed
+=======
+
+Deprecated
+==========
+
+Removed
+=======
+
+Fixed
+=====
+- Fixed error due to division by zero when ``duration_sec` is zero in the ``stats`` of a flow.
+
+Security
+========
+
 General Information
 ===================
 - This napp was cloned from ``flow_stats``.
