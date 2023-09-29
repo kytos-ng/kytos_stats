@@ -6,6 +6,14 @@ All notable changes to the kytos_stats NApp will be documented in this file.
 [UNRELEASED] - Under development
 ********************************
 
+[2023.1.1] - 2023-09-29
+***********************
+
+Fixed
+=====
+- Fixed error due to division by zero when ``duration_sec` is zero in the ``stats`` of a flow.
+
+
 [2023.1.0] - 2023-06-27
 ***********************
 

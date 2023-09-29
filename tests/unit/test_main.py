@@ -474,3 +474,30 @@ class TestMain:
         self.napp.handle_table_stats_reply_received(tables_mock)
         table = list(self.napp.tables_stats_dict.values())[0]
         assert list(table.keys())[0] == 10
+
+    @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
+    async def test_flows_counters_div_zero(self, mock_from_flow):
+        """Test that there is no error due to division by zero."""
+        flow_info = {
+            "byte_count": 10,
+            "packet_count": 20,
+            "duration_sec": 0
+            }
+        flow_id = '6055f13593fad45e0b4699f49d56b105'
+        flow_stats_dict_mock = {flow_id: flow_info}
+        dpid = "00:00:00:00:00:00:00:01"
+        flow_by_sw = {dpid: flow_stats_dict_mock}
+        mock_from_flow.return_value = flow_by_sw
+
+        self._patch_switch_flow(flow_id)
+        endpoint = f"{self.base_endpoint}/packet_count/per_flow/{dpid}"
+        response = await self.api_client.get(endpoint)
+        response = response.json()
+        assert response[0]["flow_id"] == flow_id
+        assert response[0]["packet_per_second"] == 0
+
+        endpoint = f"{self.base_endpoint}/bytes_count/per_flow/{dpid}"
+        response = await self.api_client.get(endpoint)
+        response = response.json()
+        assert response[0]["flow_id"] == flow_id
+        assert response[0]["bits_per_second"] == 0
