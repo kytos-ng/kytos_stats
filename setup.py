@@ -275,8 +275,8 @@ setup(name=f'{NAPP_USERNAME}_{NAPP_NAME}',
       packages=[],
       extras_require={
           'dev': [
-              'pytest==7.0.0',
-              'pytest-cov==3.0.0',
+              'pytest==8.0.1',
+              'pytest-cov==4.1.0',
               'pip-tools',
               'yala',
               'tox',
