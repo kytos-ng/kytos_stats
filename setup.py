@@ -271,12 +271,12 @@ setup(name=f'{NAPP_USERNAME}_{NAPP_NAME}',
       author='FIU/AmLight team',
       author_email='ops@amlight.net',
       license='MIT',
-      install_requires=read_requirements() + ["setuptools >= 59.6.0"],
+      install_requires=read_requirements() + ['importlib_metadata'],
       packages=[],
       extras_require={
           'dev': [
-              'pytest==7.0.0',
-              'pytest-cov==3.0.0',
+              'pytest==8.0.1',
+              'pytest-cov==4.1.0',
               'pip-tools',
               'yala',
               'tox',
@@ -295,6 +295,6 @@ setup(name=f'{NAPP_USERNAME}_{NAPP_NAME}',
       classifiers=[
           'License :: OSI Approved :: MIT License',
           'Operating System :: POSIX :: Linux',
-          'Programming Language :: Python :: 3.9',
+          'Programming Language :: Python :: 3.11',
           'Topic :: System :: Networking',
       ])
