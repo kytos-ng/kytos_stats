@@ -271,7 +271,7 @@ setup(name=f'{NAPP_USERNAME}_{NAPP_NAME}',
       author='FIU/AmLight team',
       author_email='ops@amlight.net',
       license='MIT',
-      install_requires=read_requirements() + ["setuptools >= 59.6.0"],
+      install_requires=read_requirements() + ['importlib_metadata'],
       packages=[],
       extras_require={
           'dev': [
