@@ -1,17 +1,17 @@
-## Kytos_stats's scripts
+## Kytos_stats's scripts for Kytos 2023.1.0
 
 This folder contains Kytos_stats's related scripts.
 
 ### Integration Kytos-ng and Zabbix for Monitoring
 
-[`kytos_zabbix.py`](./kytos_zabbix.py) is a script to help on the Kytos-ng monitoring for Zabbix.
+[`000_kytos_zabbix.py`](./000_kytos_zabbix.py) is a script to help on the Kytos-ng monitoring for Zabbix.
 
 #### Pre-requisites
 
 - There's no additional Python libraries dependencies required (the libs we use are usually installed by default).
 - Make sure your Kytos server is running and allowing requests on the Napp `kytos_stats`, `mef_eline` and `topology` (via HTTP GET method).
 - When using authentication (recommended), you will have three options to provide the credentials: via command line parameters (unsafe) `--user` and `--pass`; via a file in the filesystem (`--passfile`) which contains the username in the first line and the password in the second line (you can change the permissions of the file to restrict access); via environment variables, such as:
-- Export  related variables that [kytos_zabbix.py](scripts/kytos_zabbix.py) optionally uses
+- Export  related variables that [000_kytos_zabbix.py](scripts/db/2023.1.0/000_kytos_zabbix.py) optionally uses
 
 ```
 export KYTOS_URL=https://mykytoserver.domain.com/api
@@ -22,13 +22,13 @@ export KYTOS_PASSWORD=changeme123
 
 #### How to use
 
-The `kytos_zabbix.py` script has a few monitoring capabilities, such as the monitoring option `-o`: 1 - status of switches; 2 - status of links; 3 - status of EVCs; 4 - statistics of EVCs. You can filter by the target to be monitored by using the option `-t` (target), example: to get the status of switch01 (dpid 00:00:00:00:00:00:00:01) one would use `-o 1 -t 00:00:00:00:00:00:00:01`. To get status of table 1 of switch01 one would use `-o 6 -t 00:00:00:00:00:00:00:01::1`. Furthermore, when collecting statistics for EVCs, you can filter by (option `-s`): 1 - bytes/UNI_A, 2 - bytes/UNI_Z , 3 - packets/UNI_A, 4 - packets/UNI_Z.
+The `000_kytos_zabbix.py` script has a few monitoring capabilities, such as the monitoring option `-o`: 1 - status of switches; 2 - status of links; 3 - status of EVCs; 4 - statistics of EVCs. You can filter by the target to be monitored by using the option `-t` (target), example: to get the status of switch01 (dpid 00:00:00:00:00:00:00:01) one would use `-o 1 -t 00:00:00:00:00:00:00:01`. To get status of table 1 of switch01 one would use `-o 6 -t 00:00:00:00:00:00:00:01::1`. Furthermore, when collecting statistics for EVCs, you can filter by (option `-s`): 1 - bytes/UNI_A, 2 - bytes/UNI_Z , 3 - packets/UNI_A, 4 - packets/UNI_Z.
 
 Here is the complete help and options:
 
 ```
-# ./kytos_zabbix.py --help
-usage: kytos_zabbix.py [-h] [-l URL] [-u USERNAME] [-p PASSWORD] [-f AUTHFILE]
+# ./000_kytos_zabbix.py --help
+usage: 000_kytos_zabbix.py [-h] [-l URL] [-u USERNAME] [-p PASSWORD] [-f AUTHFILE]
                        [-c CACHE_POLICY] [-o {1,2,3,4,5}] [-t TARGET]
                        [-z {1,2}] [-s {1,2,3,4}]
 
@@ -70,7 +70,7 @@ Examples:
 
 List the switches (useful for zabbix LLD):
 ```
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 1 -z 2 | python3 -m json.tool
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 1 -z 2 | python3 -m json.tool
 {
     "data": [
         {
@@ -92,7 +92,7 @@ List the switches (useful for zabbix LLD):
 List the EVCs:
 
 ```
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 3 -z 2 | python3 -m json.tool
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 3 -z 2 | python3 -m json.tool
 {
     "data": [
         {
@@ -114,26 +114,26 @@ List the EVCs:
 Get byte count for a specific EVC:
 
 ```
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 4 -t db608c96f05940 -s 1
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 4 -t db608c96f05940 -s 1
 22594145833
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 4 -t db608c96f05940 -s 2
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 4 -t db608c96f05940 -s 2
 22594175814
 ```
 
 Get tables statistics:
 
 ```
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01
 254 ## Number of tables in switch01
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::0
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::0
 1 ## 1 table
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::2000
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::2000
 0 ## No table with this id
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::0 -s 5
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::0 -s 5
 {'0': 28} ## active count in table 0
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::2000 -s 5
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01::2000 -s 5
 {} ## No table with this id
-# /usr/share/zabbix/externalscripts/kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01 -s 5
+# /usr/share/zabbix/externalscripts/000_kytos_zabbix.py -o 6 -t 00:00:00:00:00:00:00:01 -s 5
 {'0': 28, '1': 0, ..., '253': 0} ## in all tables
 ```
 
