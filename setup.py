@@ -98,7 +98,8 @@ class Test(TestCommand):
 
     def run(self):
         """Run tests."""
-        cmd = f"python3 -m pytest tests/ {self.get_args()}"
+        cmd = "python3 -m pytest tests/ --cov-report term-missing"
+        cmd += f" {self.get_args()}"
         try:
             check_call(cmd, shell=True)
         except CalledProcessError as exc:
@@ -114,7 +115,8 @@ class TestCoverage(Test):
 
     def run(self):
         """Run tests quietly and display coverage report."""
-        cmd = f"python3 -m pytest --cov=. tests/ {self.get_args()}"
+        cmd = "python3 -m pytest --cov=. tests/ --cov-report term-missing"
+        cmd += f" {self.get_args()}"
         try:
             check_call(cmd, shell=True)
         except CalledProcessError as exc:
@@ -273,15 +275,6 @@ setup(name=f'{NAPP_USERNAME}_{NAPP_NAME}',
       license='MIT',
       install_requires=read_requirements() + ['importlib_metadata'],
       packages=[],
-      extras_require={
-          'dev': [
-              'pytest==8.0.1',
-              'pytest-cov==4.1.0',
-              'pip-tools',
-              'yala',
-              'tox',
-          ],
-      },
       cmdclass={
           'clean': Cleaner,
           'coverage': TestCoverage,
