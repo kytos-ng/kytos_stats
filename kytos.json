@@ -3,7 +3,7 @@
   "username": "amlight",
   "name": "kytos_stats",
   "description": "Show statistics about flows and tables.",
-  "version": "2023.1.0",
+  "version": "2024.1.0",
   "napp_dependencies": ["kytos/of_core"],
   "license": "",
   "tags": [],
