@@ -133,6 +133,11 @@ def convert_status(active, enabled):
     else:
         return "0"
 
+def compare_paths(path1, path2):
+    if len(path1) != len(path2):
+        return False
+    return all(x.get('id') == y.get('id') for x,y in zip(path1, path2))
+
 def print_target_results(data, option, target):
     if target not in data:
         print("Unknown target=%s" % (target))
@@ -150,9 +155,9 @@ def print_target_results(data, option, target):
         if status != "2" or evc.get("dynamic_backup_path", False):
             print(status)
             return
-        if evc["current_path"] == evc["primary_path"]:
+        if compare_paths(evc["current_path"], evc["primary_path"]):
             print("2")
-        elif evc["current_path"] == evc["backup_path"]:
+        elif compare_paths(evc["current_path"], evc["backup_path"]):
             print("3")
         else:
             print("0")
