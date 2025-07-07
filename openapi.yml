@@ -118,6 +118,105 @@ paths:
                             type: integer
                             format: int64
                             example: 0
+  /api/amlight/kytos_stats/v1/port/stats:
+    get:
+      tags:
+        - object
+      summary: Return port stats.
+      description: Return the stats of ports given a list of dpids and optionally port numbers.
+      parameters:
+        - name: dpid
+          schema:
+            type: array
+            items:
+              type: string
+          description: List of switch ids
+          required: false
+          in: query
+          example: ["00:00:00:00:00:00:00:01","00:00:00:00:00:00:00:02"]
+        - name: port
+          schema:
+            type: array
+            items:
+              type: string
+          description: List of port numbers
+          required: false
+          in: query
+          example: ["1", "2"]
+      responses:
+        200:
+          description: Describe a successful call.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  switch:
+                    type: object
+                    properties:
+                      port_stats:
+                        type: object
+                        properties:
+                          port_no:
+                            type: integer
+                            format: int32
+                            example: 0
+			  rx_packets:
+                            type: integer
+                            format: int64
+                            example: 0
+			  tx_packets:
+                            type: integer
+                            format: int64
+                            example: 0
+			  rx_bytes:
+                            type: integer
+                            format: int64
+                            example: 0
+			  tx_bytes:
+                            type: integer
+                            format: int64
+                            example: 0
+			  rx_dropped:
+                            type: integer
+                            format: int64
+                            example: 0
+			  tx_dropped:
+                            type: integer
+                            format: int64
+                            example: 0
+			  rx_errors:
+                            type: integer
+                            format: int64
+                            example: 0
+			  tx_errors:
+                            type: integer
+                            format: int64
+                            example: 0
+			  rx_frame_err:
+                            type: integer
+                            format: int64
+                            example: 0
+			  rx_over_err:
+                            type: integer
+                            format: int64
+                            example: 0
+			  rx_crc_err:
+                            type: integer
+                            format: int64
+                            example: 0
+			  collisions:
+                            type: integer
+                            format: int64
+                            example: 0
+			  duration_sec:
+                            type: integer
+                            format: int64
+                            example: 0
+			  duration_nsec:
+                            type: integer
+                            format: int64
+                            example: 0
   /api/amlight/kytos_stats/v1/packet_count/{flow_id}:
     get:
       summary: Packet count of an specific flow.

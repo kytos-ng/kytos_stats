@@ -24,7 +24,8 @@ class TestMain:
         """Verify all event listeners registered."""
         expected_events = [
             'kytos/of_core.flow_stats.received',
-            'kytos/of_core.table_stats.received'
+            'kytos/of_core.table_stats.received',
+            'kytos/of_core.port_stats',
         ]
         actual_events = self.napp.listeners()
 
@@ -328,6 +329,87 @@ class TestMain:
         expected = table_by_sw
         assert response.json() == expected
 
+    async def test_port_stats_filter(self):
+        """Test table_stats rest call."""
+        self.napp.port_stats_dict = {
+            "0x1": {
+                1: {
+                    "port_no": 1,
+                },
+                2: {
+                    "port_no": 2,
+                },
+            },
+            "0x2": {
+                99: {
+                    "port_no": 99,
+                },
+            },
+        }
+        expected_result = {}
+        for dpid, sw in self.napp.port_stats_dict.items():
+            expected_result[dpid] = {}
+            for port_no, port in sw.items():
+                expected_result[dpid][str(port_no)] = port
+
+        endpoint = "/port/stats"
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
+        assert response.status_code == 200
+        assert response.json() == expected_result
+
+        endpoint = "/port/stats?dpid=0x1&port=1"
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert "0x1" in data
+        assert len(data["0x1"]) == 1
+        assert "1" in data["0x1"]
+
+    def test_handle_port_stats(self):
+        """Test handle_stats_received function."""
+        expected_dict = {
+            "00:00:00:00:00:00:00:01": {
+                1: {
+                    "port_no": 1,
+                    "rx_packets": 0,
+                    "tx_packets": 0,
+                    "rx_bytes": 0,
+                    "tx_bytes": 0,
+                    "rx_dropped": 0,
+                    "tx_dropped": 0,
+                    "rx_errors": 0,
+                    "tx_errors": 0,
+                    "rx_frame_err": 0,
+                    "rx_over_err": 0,
+                    "rx_crc_err": 0,
+                    "collisions": 0,
+                    "duration_sec": 0,
+                    "duration_nsec": 0,
+                },
+            },
+        }
+
+        name = "kytos/of_core.port_stats"
+        event = get_kytos_event_mock(name=name, content={})
+
+        self.napp.handle_port_stats(event)
+
+        assert not self.napp.port_stats_dict
+
+        switch = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        switch.id = switch.dpid
+        port_stats = self._get_mocked_port_stat(port_no=1)
+        content = {"switch": switch, "port_stats": [port_stats]}
+
+        event = get_kytos_event_mock(name=name, content=content)
+
+        self.napp.handle_port_stats(event)
+
+        assert self.napp.port_stats_dict == expected_dict
+
     @patch("napps.amlight.kytos_stats.main.Main.table_stats_by_dpid_table_id")
     async def test_table_stats_by_dpid_table_id_without_dpid(self,
                                                              mock_from_table):
@@ -402,6 +484,26 @@ class TestMain:
 
         replies_tables = [table]
         return replies_tables
+
+    def _get_mocked_port_stat(self, **kwargs):
+        """Helper method to create mock port stats."""
+        port_stats = MagicMock()
+        port_stats.port_no.value = kwargs.get("port_no", 0)
+        port_stats.rx_packets.value = kwargs.get("rx_packets", 0)
+        port_stats.tx_packets.value = kwargs.get("tx_packets", 0)
+        port_stats.rx_bytes.value = kwargs.get("rx_bytes", 0)
+        port_stats.tx_bytes.value = kwargs.get("tx_bytes", 0)
+        port_stats.rx_dropped.value = kwargs.get("rx_dropped", 0)
+        port_stats.tx_dropped.value = kwargs.get("tx_dropped", 0)
+        port_stats.rx_errors.value = kwargs.get("rx_errors", 0)
+        port_stats.tx_errors.value = kwargs.get("tx_errors", 0)
+        port_stats.rx_frame_err.value = kwargs.get("rx_frame_err", 0)
+        port_stats.rx_over_err.value = kwargs.get("rx_over_err", 0)
+        port_stats.rx_crc_err.value = kwargs.get("rx_crc_err", 0)
+        port_stats.collisions.value = kwargs.get("collisions", 0)
+        port_stats.duration_sec.value = kwargs.get("duration_sec", 0)
+        port_stats.duration_nsec.value = kwargs.get("duration_nsec", 0)
+        return port_stats
 
     def _get_mocked_flow_base(self):
         """Helper method to create a mock flow object."""

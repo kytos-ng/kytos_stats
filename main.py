@@ -25,6 +25,7 @@ class Main(KytosNApp):
         log.info('Starting Kytos/Amlight flow manager')
         self.flows_stats_dict = {}
         self.tables_stats_dict = {}
+        self.port_stats_dict = {}
 
     def execute(self):
         """This method is executed right after the setup method execution.
@@ -77,6 +78,22 @@ class Main(KytosNApp):
                     table_stats_by_id[dpid][table_id] = table_dict
         return table_stats_by_id
 
+    def port_stats_filter(self, f_dpids, f_ports):
+        """ Auxiliar funcion for v1/port/stats endpoint implementation.
+        """
+        port_stats = {}
+        dpid_keys = f_dpids if f_dpids else self.port_stats_dict.keys()
+        for dpid in dpid_keys:
+            port_stats[dpid] = {}
+            port_keys = f_ports
+            if not f_ports:
+                port_keys = self.port_stats_dict.get(dpid, {}).keys()
+            for port_no in port_keys:
+                if p_stat := self.port_stats_dict[dpid].get(port_no):
+                    port_stats[dpid][port_no] = p_stat
+        print(port_stats)
+        return port_stats
+
     @rest('v1/flow/stats')
     def flow_stats(self, request: Request) -> JSONResponse:
         """Return the flows stats by dpid.
@@ -100,6 +117,13 @@ class Main(KytosNApp):
         table_ids = list(map(int, table_ids))
         table_stats_dpid = self.table_stats_by_dpid_table_id(dpids, table_ids)
         return JSONResponse(table_stats_dpid)
+
+    @rest('v1/port/stats')
+    def port_stats(self, request: Request) -> JSONResponse:
+        """Return the port stats by dpid, and optionally by port."""
+        dpids = request.query_params.getlist("dpid")
+        ports = list(map(int, request.query_params.getlist("port")))
+        return JSONResponse(self.port_stats_filter(dpids, ports))
 
     @rest('v1/packet_count/{flow_id}')
     def packet_count(self, request: Request) -> JSONResponse:
@@ -227,3 +251,34 @@ class Main(KytosNApp):
             if switch_id not in self.tables_stats_dict:
                 self.tables_stats_dict[switch_id] = {}
             self.tables_stats_dict[switch_id][table.table_id] = table
+
+    @listen_to('kytos/of_core.port_stats')
+    def on_port_stats(self, event):
+        """Capture port stats messages for OpenFlow 1.3."""
+        self.handle_port_stats(event)
+
+    def handle_port_stats(self, event):
+        """Handle port stats messages for OpenFlow 1.3."""
+        port_stats = event.content.get('port_stats')
+        switch = event.content.get('switch')
+        if not port_stats or not switch:
+            return
+        for port in port_stats:
+            self.port_stats_dict.setdefault(switch.id, {})
+            self.port_stats_dict[switch.id][port.port_no.value] = {
+                "port_no": port.port_no.value,
+                "rx_packets": port.rx_packets.value,
+                "tx_packets": port.tx_packets.value,
+                "rx_bytes": port.rx_bytes.value,
+                "tx_bytes": port.tx_bytes.value,
+                "rx_dropped": port.rx_dropped.value,
+                "tx_dropped": port.tx_dropped.value,
+                "rx_errors": port.rx_errors.value,
+                "tx_errors": port.tx_errors.value,
+                "rx_frame_err": port.rx_frame_err.value,
+                "rx_over_err": port.rx_over_err.value,
+                "rx_crc_err": port.rx_crc_err.value,
+                "collisions": port.collisions.value,
+                "duration_sec": port.duration_sec.value,
+                "duration_nsec": port.duration_nsec.value,
+            }
