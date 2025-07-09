@@ -78,7 +78,7 @@ class Main(KytosNApp):
                     table_stats_by_id[dpid][table_id] = table_dict
         return table_stats_by_id
 
-    def port_stats_filter(self, f_dpids, f_ports):
+    def port_stats_filter(self, f_dpids: list[str], f_ports: list[int]) -> dict:
         """ Auxiliar funcion for v1/port/stats endpoint implementation.
         """
         port_stats = {}
