@@ -368,6 +368,14 @@ class TestMain:
         assert len(data["0x1"]) == 1
         assert "1" in data["0x1"]
 
+        endpoint = "/port/stats?dpid=0x1&port=a"
+        url = f"{self.base_endpoint}{endpoint}"
+        response = await self.api_client.get(url)
+        assert response.status_code == 400
+        data = response.json()
+        desc = data["description"]
+        assert "'port' value is supposed to be an integer" in desc
+
     async def test_on_port_stats(self):
         """Test handle_stats_received function."""
         expected_dict = {

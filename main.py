@@ -131,7 +131,11 @@ class Main(KytosNApp):
     async def port_stats(self, request: Request) -> JSONResponse:
         """Return the port stats by dpid, and optionally by port."""
         dpids = request.query_params.getlist("dpid")
-        ports = list(map(int, request.query_params.getlist("port")))
+        try:
+            ports = list(map(int, request.query_params.getlist("port")))
+        except (ValueError, TypeError):
+            detail = "'port' value is supposed to be an integer"
+            raise HTTPException(400, detail=detail)
         return JSONResponse(self.port_stats_filter(dpids, ports))
 
     @rest('v1/packet_count/{flow_id}')
