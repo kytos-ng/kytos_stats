@@ -368,7 +368,7 @@ class TestMain:
         assert len(data["0x1"]) == 1
         assert "1" in data["0x1"]
 
-    def test_handle_port_stats(self):
+    async def test_on_port_stats(self):
         """Test handle_stats_received function."""
         expected_dict = {
             "00:00:00:00:00:00:00:01": {
@@ -395,7 +395,7 @@ class TestMain:
         name = "kytos/of_core.port_stats"
         event = get_kytos_event_mock(name=name, content={})
 
-        self.napp.handle_port_stats(event)
+        await self.napp.on_port_stats(event)
 
         assert not self.napp.port_stats_dict
 
@@ -406,7 +406,7 @@ class TestMain:
 
         event = get_kytos_event_mock(name=name, content=content)
 
-        self.napp.handle_port_stats(event)
+        await self.napp.on_port_stats(event)
 
         assert self.napp.port_stats_dict == expected_dict
 

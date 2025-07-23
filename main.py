@@ -8,7 +8,8 @@ This NApp does operations with flows not covered by Kytos itself.
 from collections import defaultdict
 
 from kytos.core import KytosNApp, log, rest
-from kytos.core.helpers import listen_to
+from kytos.core.events import KytosEvent
+from kytos.core.helpers import listen_to, alisten_to
 from kytos.core.rest_api import HTTPException, JSONResponse, Request
 
 
@@ -258,12 +259,8 @@ class Main(KytosNApp):
                 self.tables_stats_dict[switch_id] = {}
             self.tables_stats_dict[switch_id][table.table_id] = table
 
-    @listen_to('kytos/of_core.port_stats')
-    def on_port_stats(self, event):
-        """Capture port stats messages for OpenFlow 1.3."""
-        self.handle_port_stats(event)
-
-    def handle_port_stats(self, event):
+    @alisten_to('kytos/of_core.port_stats')
+    async def on_port_stats(self, event: KytosEvent) -> None:
         """Handle port stats messages for OpenFlow 1.3."""
         port_stats = event.content.get('port_stats')
         switch = event.content.get('switch')
