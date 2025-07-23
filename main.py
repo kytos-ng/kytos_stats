@@ -6,6 +6,7 @@ This NApp does operations with flows not covered by Kytos itself.
 # pylint: disable=too-many-arguments,too-many-branches,too-many-statements
 
 from collections import defaultdict
+from datetime import datetime
 
 from kytos.core import KytosNApp, log, rest
 from kytos.core.events import KytosEvent
@@ -133,9 +134,9 @@ class Main(KytosNApp):
         dpids = request.query_params.getlist("dpid")
         try:
             ports = list(map(int, request.query_params.getlist("port")))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as exc:
             detail = "'port' value is supposed to be an integer"
-            raise HTTPException(400, detail=detail)
+            raise HTTPException(400, detail=detail) from exc
         return JSONResponse(self.port_stats_filter(dpids, ports))
 
     @rest('v1/packet_count/{flow_id}')
@@ -272,6 +273,7 @@ class Main(KytosNApp):
         switch = event.content.get('switch')
         if not port_stats or not switch:
             return
+        updated_at = datetime.utcnow()
         for port in port_stats:
             self.port_stats_dict[switch.id][port.port_no.value] = {
                 "port_no": port.port_no.value,
@@ -289,4 +291,5 @@ class Main(KytosNApp):
                 "collisions": port.collisions.value,
                 "duration_sec": port.duration_sec.value,
                 "duration_nsec": port.duration_nsec.value,
+                "updated_at": updated_at,
             }

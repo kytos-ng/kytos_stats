@@ -376,8 +376,11 @@ class TestMain:
         desc = data["description"]
         assert "'port' value is supposed to be an integer" in desc
 
-    async def test_on_port_stats(self):
+    async def test_on_port_stats(self, monkeypatch):
         """Test handle_stats_received function."""
+        mock = MagicMock()
+        mock.utcnow.return_value = "some_time"
+        monkeypatch.setattr("napps.amlight.kytos_stats.main.datetime", mock)
         expected_dict = {
             "00:00:00:00:00:00:00:01": {
                 1: {
@@ -396,6 +399,7 @@ class TestMain:
                     "collisions": 0,
                     "duration_sec": 0,
                     "duration_nsec": 0,
+                    "updated_at": "some_time"
                 },
             },
         }
