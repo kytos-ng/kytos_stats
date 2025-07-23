@@ -91,7 +91,6 @@ class Main(KytosNApp):
             for port_no in port_keys:
                 if p_stat := self.port_stats_dict[dpid].get(port_no):
                     port_stats[dpid][port_no] = p_stat
-        print(port_stats)
         return port_stats
 
     @rest('v1/flow/stats')
