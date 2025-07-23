@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from kytos.core import KytosNApp, log, rest
 from kytos.core.events import KytosEvent
-from kytos.core.helpers import listen_to, alisten_to
+from kytos.core.helpers import alisten_to, listen_to
 from kytos.core.rest_api import HTTPException, JSONResponse, Request
 
 
@@ -82,7 +82,9 @@ class Main(KytosNApp):
                     table_stats_by_id[dpid][table_id] = table_dict
         return table_stats_by_id
 
-    def port_stats_filter(self, f_dpids: list[str], f_ports: list[int]) -> dict:
+    def port_stats_filter(
+        self, f_dpids: list[str], f_ports: list[int]
+    ) -> dict:
         """ Auxiliar funcion for v1/port/stats endpoint implementation.
         """
         port_stats = {}
