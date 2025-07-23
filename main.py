@@ -5,6 +5,8 @@ This NApp does operations with flows not covered by Kytos itself.
 # pylint: disable=too-many-return-statements,too-many-instance-attributes
 # pylint: disable=too-many-arguments,too-many-branches,too-many-statements
 
+from collections import defaultdict
+
 from kytos.core import KytosNApp, log, rest
 from kytos.core.helpers import listen_to
 from kytos.core.rest_api import HTTPException, JSONResponse, Request
@@ -25,7 +27,8 @@ class Main(KytosNApp):
         log.info('Starting Kytos/Amlight flow manager')
         self.flows_stats_dict = {}
         self.tables_stats_dict = {}
-        self.port_stats_dict = {}
+        # port stats data by dpid by port_no
+        self.port_stats_dict: dict[str, dict[int, dict]] = defaultdict(dict)
 
     def execute(self):
         """This method is executed right after the setup method execution.
@@ -82,12 +85,16 @@ class Main(KytosNApp):
         """ Auxiliar funcion for v1/port/stats endpoint implementation.
         """
         port_stats = {}
-        dpid_keys = f_dpids if f_dpids else self.port_stats_dict.keys()
+        dpid_keys = (
+            (dpid for dpid in f_dpids if dpid in self.port_stats_dict)
+            if f_dpids
+            else self.port_stats_dict.keys()
+        )
         for dpid in dpid_keys:
             port_stats[dpid] = {}
             port_keys = f_ports
             if not f_ports:
-                port_keys = self.port_stats_dict.get(dpid, {}).keys()
+                port_keys = self.port_stats_dict[dpid].keys()
             for port_no in port_keys:
                 if p_stat := self.port_stats_dict[dpid].get(port_no):
                     port_stats[dpid][port_no] = p_stat
@@ -263,7 +270,6 @@ class Main(KytosNApp):
         if not port_stats or not switch:
             return
         for port in port_stats:
-            self.port_stats_dict.setdefault(switch.id, {})
             self.port_stats_dict[switch.id][port.port_no.value] = {
                 "port_no": port.port_no.value,
                 "rx_packets": port.rx_packets.value,
