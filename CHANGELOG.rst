@@ -6,6 +6,11 @@ All notable changes to the kytos_stats NApp will be documented in this file.
 [UNRELEASED] - Under development
 ********************************
 
+Added
+=====
+- Event listner for ``kytos/of_core.port_stats`.
+- Add GET ``v1/port/stats`` endpoint to listing port stats by dpid and port.
+
 [2025.1.0] - 2025-04-14
 ***********************
 

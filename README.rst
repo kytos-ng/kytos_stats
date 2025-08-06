@@ -51,6 +51,7 @@ Subscribed
 
 - ``kytos/of_core.flow_stats.received``
 - ``kytos/of_core.table_stats.received``
+- ``kytos/of_core.port_stats``
 
 
 .. TAGs
