@@ -6,6 +6,9 @@ All notable changes to the kytos_stats NApp will be documented in this file.
 [UNRELEASED] - Under development
 ********************************
 
+[2025.2.0] - 2026-02-02
+***********************
+
 Added
 =====
 - Event listner for ``kytos/of_core.port_stats`.
