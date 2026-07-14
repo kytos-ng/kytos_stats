@@ -6,6 +6,22 @@ All notable changes to the kytos_stats NApp will be documented in this file.
 [UNRELEASED] - Under development
 ********************************
 
+Added
+=====
+- Event listener for ``kytos/topology.switch.deleted`` to evict all cached
+  flow, table and port stats of a deleted switch.
+
+Changed
+=======
+- Stats event handlers (``flow_stats.received``, ``table_stats.received``) now
+  run asynchronously via ``alisten_to``.
+
+Fixed
+=====
+- Fixed unbounded memory growth of the flow, table and port stats caches. Each
+  stats reply now overwrites the reporting switch's cached data instead of
+  merging into it.
+
 [2025.2.0] - 2026-02-02
 ***********************
 
