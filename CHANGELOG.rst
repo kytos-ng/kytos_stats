@@ -15,6 +15,7 @@ Changed
 =======
 - Stats event handlers (``flow_stats.received``, ``table_stats.received``) now
   run asynchronously via ``alisten_to``.
+- Refactored endpoints to run on asyncio (tech debt)
 
 Fixed
 =====
