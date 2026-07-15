@@ -18,13 +18,14 @@ Changed
 =======
 - Stats event handlers (``flow_stats.received``, ``table_stats.received``) now
   run asynchronously via ``alisten_to``.
-- Refactored endpoints to run on asyncio (tech debt)
 
 Fixed
 =====
-- Fixed unbounded memory growth of the flow, table and port stats caches. Each
-  stats reply now overwrites the reporting switch's cached data instead of
-  merging into it.
+- Fixed unbounded memory growth of the flow stats cache. Each stats reply now
+  overwrites the reporting switch's cached data instead of merging into it, so
+  flows removed from a switch are no longer retained forever.
+- Fixed stale table and port stats being served after a switch stopped
+  reporting a given table or port.
 
 [2025.2.0] - 2026-02-02
 ***********************
