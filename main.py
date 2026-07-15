@@ -133,7 +133,7 @@ class Main(KytosNApp):
         return JSONResponse(table_stats_dpid)
 
     @rest('v1/port/stats')
-    def port_stats(self, request: Request) -> JSONResponse:
+    async def port_stats(self, request: Request) -> JSONResponse:
         """Return the port stats by dpid, and optionally by port."""
         dpids = request.query_params.getlist("dpid")
         try:
