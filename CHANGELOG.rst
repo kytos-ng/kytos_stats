@@ -6,6 +6,9 @@ All notable changes to the kytos_stats NApp will be documented in this file.
 [UNRELEASED] - Under development
 ********************************
 
+[2025.2.1] - 2026-07-14
+***********************
+
 Added
 =====
 - Event listener for ``kytos/topology.switch.deleted`` to evict all cached
