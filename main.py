@@ -108,7 +108,7 @@ class Main(KytosNApp):
         return port_stats
 
     @rest('v1/flow/stats')
-    def flow_stats(self, request: Request) -> JSONResponse:
+    async def flow_stats(self, request: Request) -> JSONResponse:
         """Return the flows stats by dpid.
         Return the stats of all flows if dpid is None
         """
@@ -119,7 +119,7 @@ class Main(KytosNApp):
         return JSONResponse(flow_stats_by_id)
 
     @rest('v1/table/stats')
-    def table_stats(self, request: Request) -> JSONResponse:
+    async def table_stats(self, request: Request) -> JSONResponse:
         """Return the table stats by dpid,
         and optionally by table_id.
         """
@@ -143,7 +143,7 @@ class Main(KytosNApp):
         return JSONResponse(self.port_stats_filter(dpids, ports))
 
     @rest('v1/packet_count/{flow_id}')
-    def packet_count(self, request: Request) -> JSONResponse:
+    async def packet_count(self, request: Request) -> JSONResponse:
         """Packet count of an specific flow."""
         flow_id = request.path_params["flow_id"]
         flow = self.flow_from_id(flow_id)
@@ -162,7 +162,7 @@ class Main(KytosNApp):
         return JSONResponse(packet_stats)
 
     @rest('v1/bytes_count/{flow_id}')
-    def bytes_count(self, request: Request) -> JSONResponse:
+    async def bytes_count(self, request: Request) -> JSONResponse:
         """Bytes count of an specific flow."""
         flow_id = request.path_params["flow_id"]
         flow = self.flow_from_id(flow_id)
@@ -181,7 +181,7 @@ class Main(KytosNApp):
         return JSONResponse(bytes_stats)
 
     @rest('v1/packet_count/per_flow/{dpid}')
-    def packet_count_per_flow(self, request: Request) -> JSONResponse:
+    async def packet_count_per_flow(self, request: Request) -> JSONResponse:
         """Per flow packet count."""
         dpid = request.path_params["dpid"]
         return self.flows_counters('packet_count',
@@ -190,7 +190,7 @@ class Main(KytosNApp):
                                    rate='packet_per_second')
 
     @rest('v1/bytes_count/per_flow/{dpid}')
-    def bytes_count_per_flow(self, request: Request) -> JSONResponse:
+    async def bytes_count_per_flow(self, request: Request) -> JSONResponse:
         """Per flow bytes count."""
         dpid = request.path_params["dpid"]
         return self.flows_counters('byte_count',
