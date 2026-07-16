@@ -15,6 +15,8 @@ Changed
 =======
 - Stats event handlers (``flow_stats.received``, ``table_stats.received``) now
   run asynchronously via ``alisten_to``.
+- Clients such as ``scripts/kytos_zabbix.py`` that were consuming stats are
+  expected to now see lower values as deleted resources are no longer kept
 
 Fixed
 =====
