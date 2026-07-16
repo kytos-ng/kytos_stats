@@ -26,6 +26,7 @@ class TestMain:
             'kytos/of_core.flow_stats.received',
             'kytos/of_core.table_stats.received',
             'kytos/of_core.port_stats',
+            'kytos/topology.switch.deleted',
         ]
         actual_events = self.napp.listeners()
 
@@ -42,7 +43,7 @@ class TestMain:
         """Test flow_from_id function"""
         flow = self._get_mocked_flow_base()
         self.napp.flows_stats_dict = {
-            flow.id: flow
+            "00:00:00:00:00:00:00:01": {flow.id: flow}
         }
         results = self.napp.flow_from_id(flow.id)
         assert results.id == flow.id
@@ -51,7 +52,7 @@ class TestMain:
         """Test flow_from_id function"""
         flow = self._get_mocked_flow_base()
         self.napp.flows_stats_dict = {
-            flow.id: flow
+            "00:00:00:00:00:00:00:01": {flow.id: flow}
         }
         results = self.napp.flow_from_id('1')
         assert results is None
@@ -422,6 +423,49 @@ class TestMain:
 
         assert self.napp.port_stats_dict == expected_dict
 
+    async def test_on_port_stats_overwrite(self, monkeypatch):
+        """Test a switch's ports are recreated from the fresh snapshot."""
+        mock = MagicMock()
+        mock.utcnow.return_value = "some_time"
+        monkeypatch.setattr("napps.amlight.kytos_stats.main.datetime", mock)
+
+        switch = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        switch.id = switch.dpid
+        # seed a stale port for the switch
+        self.napp.port_stats_dict[switch.id] = {99: {"port_no": 99}}
+
+        port_stats = self._get_mocked_port_stat(port_no=1)
+        content = {"switch": switch, "port_stats": [port_stats]}
+        event = get_kytos_event_mock(name="kytos/of_core.port_stats",
+                                     content=content)
+        await self.napp.on_port_stats(event)
+
+        assert set(self.napp.port_stats_dict[switch.id]) == {1}
+
+    async def test_on_switch_deleted(self):
+        """Test a deleted switch is purged from all caches."""
+        sw_a = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        sw_a.id = sw_a.dpid
+        sw_b = get_switch_mock("00:00:00:00:00:00:00:02", 0x04)
+        sw_b.id = sw_b.dpid
+
+        self.napp.flows_stats_dict = {sw_a.id: {"f1": MagicMock()},
+                                      sw_b.id: {"f2": MagicMock()}}
+        self.napp.tables_stats_dict = {sw_a.id: {0: MagicMock()},
+                                       sw_b.id: {0: MagicMock()}}
+        self.napp.port_stats_dict[sw_a.id] = {1: {"port_no": 1}}
+        self.napp.port_stats_dict[sw_b.id] = {1: {"port_no": 1}}
+
+        content = {"switch": sw_a}
+        event = get_kytos_event_mock(name="kytos/topology.switch.deleted",
+                                     content=content)
+        await self.napp.on_switch_deleted(event)
+
+        for cache in (self.napp.flows_stats_dict, self.napp.tables_stats_dict,
+                      self.napp.port_stats_dict):
+            assert sw_a.id not in cache
+            assert sw_b.id in cache
+
     @patch("napps.amlight.kytos_stats.main.Main.table_stats_by_dpid_table_id")
     async def test_table_stats_by_dpid_table_id_without_dpid(self,
                                                              mock_from_table):
@@ -562,10 +606,31 @@ class TestMain:
     def test_handle_stats_reply_received(self):
         """Test handle_stats_reply_received call."""
 
+        switch = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        switch.id = switch.dpid
         flows_mock = self._get_mocked_multipart_replies_flows()
-        self.napp.handle_stats_reply_received(flows_mock)
+        self.napp.handle_stats_reply_received(switch, flows_mock)
 
-        assert list(self.napp.flows_stats_dict.values())[0].id == 456
+        assert self.napp.flows_stats_dict[switch.id][456].id == 456
+
+    def test_handle_stats_reply_received_overwrite(self):
+        """Test a switch's flows are recreated, others left untouched."""
+        sw_a = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        sw_a.id = sw_a.dpid
+        sw_b = get_switch_mock("00:00:00:00:00:00:00:02", 0x04)
+        sw_b.id = sw_b.dpid
+
+        f1, f2, f3 = (self._get_mocked_flow_base() for _ in range(3))
+        f1.id, f2.id, f3.id = "f1", "f2", "f3"
+
+        self.napp.handle_stats_reply_received(sw_a, [f1, f2])
+        self.napp.handle_stats_reply_received(sw_b, [f3])
+        assert set(self.napp.flows_stats_dict[sw_a.id]) == {"f1", "f2"}
+
+        # fresh snapshot for sw_a lacking f2 -> f2 dropped, sw_b untouched
+        self.napp.handle_stats_reply_received(sw_a, [f1])
+        assert set(self.napp.flows_stats_dict[sw_a.id]) == {"f1"}
+        assert set(self.napp.flows_stats_dict[sw_b.id]) == {"f3"}
 
     @patch("napps.amlight.kytos_stats.main.Main.handle_table_stats_received")
     def test_handle_table_stats_received(self, mock_handle_stats):
@@ -584,10 +649,25 @@ class TestMain:
     def test_handle_table_stats_reply_received(self):
         """Test handle_table_stats_reply_received call."""
 
+        switch = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        switch.id = switch.dpid
         tables_mock = self._get_mocked_multipart_replies_tables()
-        self.napp.handle_table_stats_reply_received(tables_mock)
-        table = list(self.napp.tables_stats_dict.values())[0]
+        self.napp.handle_table_stats_reply_received(switch, tables_mock)
+        table = self.napp.tables_stats_dict[switch.id]
         assert list(table.keys())[0] == 10
+
+    def test_handle_table_stats_reply_received_overwrite(self):
+        """Test a switch's tables are recreated from the fresh snapshot."""
+        sw = get_switch_mock("00:00:00:00:00:00:00:01", 0x04)
+        sw.id = sw.dpid
+        # seed a stale table for the switch
+        self.napp.tables_stats_dict = {sw.id: {99: MagicMock()}}
+
+        table = MagicMock()
+        table.table_id = 10
+        self.napp.handle_table_stats_reply_received(sw, [table])
+
+        assert set(self.napp.tables_stats_dict[sw.id]) == {10}
 
     @patch("napps.amlight.kytos_stats.main.Main.flow_stats_by_dpid_flow_id")
     async def test_flows_counters_div_zero(self, mock_from_flow):
