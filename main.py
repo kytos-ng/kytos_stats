@@ -10,7 +10,7 @@ from datetime import datetime
 
 from kytos.core import KytosNApp, log, rest
 from kytos.core.events import KytosEvent
-from kytos.core.helpers import alisten_to, listen_to
+from kytos.core.helpers import alisten_to
 from kytos.core.rest_api import HTTPException, JSONResponse, Request
 
 
@@ -46,18 +46,21 @@ class Main(KytosNApp):
 
     def flow_from_id(self, flow_id):
         """Flow from given flow_id."""
-        return self.flows_stats_dict.get(flow_id)
+        for flows in self.flows_stats_dict.copy().values():
+            if flow_id in flows:
+                return flows[flow_id]
+        return None
 
     def flow_stats_by_dpid_flow_id(self, dpids):
         """ Auxiliar funcion for v1/flow/stats endpoint implementation.
         """
         flow_stats_by_id = {}
-        flows_stats_dict_copy = self.flows_stats_dict.copy()
-        for flow_id, flow in flows_stats_dict_copy.items():
-            dpid = flow.switch.dpid
-            if dpid in dpids:
-                if dpid not in flow_stats_by_id:
-                    flow_stats_by_id[dpid] = {}
+        for dpid in dpids:
+            flows = self.flows_stats_dict.get(dpid)
+            if not flows:
+                continue
+            flow_stats_by_id[dpid] = {}
+            for flow_id, flow in flows.copy().items():
                 info_flow_as_dict = flow.stats.as_dict()
                 info_flow_as_dict.update({"cookie": flow.cookie})
                 info_flow_as_dict.update({"priority": flow.priority})
@@ -89,18 +92,19 @@ class Main(KytosNApp):
         """ Auxiliar funcion for v1/port/stats endpoint implementation.
         """
         port_stats = {}
+        port_stats_dict = self.port_stats_dict.copy()
         dpid_keys = (
-            (dpid for dpid in f_dpids if dpid in self.port_stats_dict)
+            (dpid for dpid in f_dpids if dpid in port_stats_dict)
             if f_dpids
-            else self.port_stats_dict.keys()
+            else port_stats_dict.keys()
         )
         for dpid in dpid_keys:
             port_stats[dpid] = {}
             port_keys = f_ports
             if not f_ports:
-                port_keys = self.port_stats_dict[dpid].keys()
+                port_keys = port_stats_dict[dpid].keys()
             for port_no in port_keys:
-                if p_stat := self.port_stats_dict[dpid].get(port_no):
+                if p_stat := port_stats_dict[dpid].get(port_no):
                     port_stats[dpid][port_no] = p_stat
         return port_stats
 
@@ -233,38 +237,40 @@ class Main(KytosNApp):
                                     rate: per_second})
         return JSONResponse(count_flows)
 
-    @listen_to('kytos/of_core.flow_stats.received')
-    def on_stats_received(self, event):
+    @alisten_to('kytos/of_core.flow_stats.received')
+    async def on_stats_received(self, event):
         """Capture flow stats messages for OpenFlow 1.3."""
         self.handle_stats_received(event)
 
     def handle_stats_received(self, event):
         """Handle flow stats messages for OpenFlow 1.3."""
         if 'replies_flows' in event.content:
+            switch = event.content['switch']
             replies_flows = event.content['replies_flows']
-            self.handle_stats_reply_received(replies_flows)
+            self.handle_stats_reply_received(switch, replies_flows)
 
-    def handle_stats_reply_received(self, replies_flows):
-        """Update the set of flows stats"""
-        self.flows_stats_dict.update({flow.id: flow for flow in replies_flows})
+    def handle_stats_reply_received(self, switch, replies_flows):
+        """Recreate this switch's flows from the fresh snapshot."""
+        self.flows_stats_dict[switch.id] = {
+            flow.id: flow for flow in replies_flows}
 
-    @listen_to('kytos/of_core.table_stats.received')
-    def on_table_stats_received(self, event):
+    @alisten_to('kytos/of_core.table_stats.received')
+    async def on_table_stats_received(self, event):
         """Capture table stats messages for OpenFlow 1.3."""
         self.handle_table_stats_received(event)
 
     def handle_table_stats_received(self, event):
         """Handle table stats messages for OpenFlow 1.3."""
+        switch = event.content['switch']
         replies_tables = event.content['replies_tables']
-        self.handle_table_stats_reply_received(replies_tables)
+        self.handle_table_stats_reply_received(switch, replies_tables)
 
-    def handle_table_stats_reply_received(self, replies_tables):
-        """Update the set of tables stats"""
+    def handle_table_stats_reply_received(self, switch, replies_tables):
+        """Recreate this switch's tables from the fresh snapshot."""
+        new_tables = {}
         for table in replies_tables:
-            switch_id = table.switch.id
-            if switch_id not in self.tables_stats_dict:
-                self.tables_stats_dict[switch_id] = {}
-            self.tables_stats_dict[switch_id][table.table_id] = table
+            new_tables[table.table_id] = table
+        self.tables_stats_dict[switch.id] = new_tables
 
     @alisten_to('kytos/of_core.port_stats')
     async def on_port_stats(self, event: KytosEvent) -> None:
@@ -274,8 +280,9 @@ class Main(KytosNApp):
         if not port_stats or not switch:
             return
         updated_at = datetime.utcnow()
+        new_ports = {}
         for port in port_stats:
-            self.port_stats_dict[switch.id][port.port_no.value] = {
+            new_ports[port.port_no.value] = {
                 "port_no": port.port_no.value,
                 "rx_packets": port.rx_packets.value,
                 "tx_packets": port.tx_packets.value,
@@ -293,3 +300,14 @@ class Main(KytosNApp):
                 "duration_nsec": port.duration_nsec.value,
                 "updated_at": updated_at,
             }
+        self.port_stats_dict[switch.id] = new_ports
+
+    @alisten_to('kytos/topology.switch.deleted')
+    async def on_switch_deleted(self, event: KytosEvent) -> None:
+        """Drop all cached stats for a deleted switch."""
+        switch = event.content.get('switch')
+        if not switch:
+            return
+        self.flows_stats_dict.pop(switch.id, None)
+        self.tables_stats_dict.pop(switch.id, None)
+        self.port_stats_dict.pop(switch.id, None)
